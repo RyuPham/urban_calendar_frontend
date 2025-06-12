@@ -352,7 +352,28 @@ const EmployeeTable = () => {
   };
 
   const handleModalSave = () => {
-    if (!newEmployee.name || !newEmployee.username || !newEmployee.password || !newEmployee.email || !newEmployee.phone || !newEmployee.gender || !newEmployee.address || !newEmployee.position || !newEmployee.office || !newEmployee.role) {
+    // Validate họ tên không chứa ký tự đặc biệt
+    const nameRegex = /^[a-zA-ZÀ-ỹ\s]+$/;
+    if (!newEmployee.name || !nameRegex.test(newEmployee.name)) {
+      setAlertMessage('Họ tên không được chứa ký tự đặc biệt và không được để trống!');
+      setOpenAlert(true);
+      return;
+    }
+    // Validate email đúng định dạng và phải có đuôi @gmail.com
+    const emailRegex = /^[\w-.]+@gmail\.com$/;
+    if (!newEmployee.email || !emailRegex.test(newEmployee.email)) {
+      setAlertMessage('Email phải đúng định dạng');
+      setOpenAlert(true);
+      return;
+    }
+    // Validate số điện thoại không quá 15 số
+    const phoneRegex = /^\d{1,15}$/;
+    if (!newEmployee.phone || !phoneRegex.test(newEmployee.phone)) {
+      setAlertMessage('Số điện thoại không được vượt quá 15 số!');
+      setOpenAlert(true);
+      return;
+    }
+    if (!newEmployee.username || !newEmployee.password || !newEmployee.gender || !newEmployee.address || !newEmployee.position || !newEmployee.office || !newEmployee.role) {
       setAlertMessage('Vui lòng nhập đầy đủ thông tin!');
       setOpenAlert(true);
       return;
@@ -536,6 +557,7 @@ const EmployeeTable = () => {
             >
               <MenuItem value="Nam">Nam</MenuItem>
               <MenuItem value="Nữ">Nữ</MenuItem>
+              <MenuItem value="Khác">Khác</MenuItem>
             </Select>
           </FormControl>
           <TextField

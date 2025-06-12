@@ -70,18 +70,30 @@ const AdminScheduleTable = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [search, setSearch] = useState('');
   const weekDates = useMemo(() => getWeekDates(currentDate), [currentDate]);
-  const [events] = useState(() => {
-    const data = localStorage.getItem('calendarEvents');
-    return data ? JSON.parse(data) : [];
-  });
+  const [events, setEvents] = useState([]);
   const [employees, setEmployees] = useState([]);
   useEffect(() => {
     const data = localStorage.getItem('employees');
+    let allEvents = [];
     if (data) {
-      setEmployees(JSON.parse(data));
+      const emps = JSON.parse(data);
+      setEmployees(emps);
+      // Lấy lịch của từng user
+      emps.forEach(emp => {
+        const evData = localStorage.getItem(`calendarEvents_${emp.id}`);
+        if (evData) {
+          try {
+            const userEvents = JSON.parse(evData);
+            if (Array.isArray(userEvents)) {
+              allEvents = allEvents.concat(userEvents);
+            }
+          } catch { }
+        }
+      });
     } else {
       setEmployees([]);
     }
+    setEvents(allEvents);
   }, []);
   const filteredEmployees = employees.filter(emp =>
     emp.name && emp.name.toLowerCase().includes(search.toLowerCase())

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Select, MenuItem, FormControl, InputLabel, Tooltip } from '@mui/material';
 import AlertPopup from '../../components/common/AlertPopup';
+import Draggable from 'react-draggable';
 
 const weekdays = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
 const hours = ["7h", "8h", "9h", "10h", "11h", "12h", "13h", "14h", "15h", "16h", "17h", "18h", "19h", "20h", "21h"];
@@ -88,12 +89,6 @@ export default function Calendar() {
   const [selectedCells, setSelectedCells] = useState([]);
   const [jobTypes, setJobTypes] = useState([]);
   const [selectedJobType, setSelectedJobType] = useState('');
-  const [events, setEvents] = useState(() => {
-    const data = localStorage.getItem('calendarEvents');
-    return data ? JSON.parse(data) : [];
-  });
-  const calendarMatrix = getCalendarMatrix(month, year);
-  const weekDates = getWeekDates(selectedDate);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [modalPos, setModalPos] = useState({ x: window.innerWidth / 2 - 180, y: window.innerHeight / 2 - 180 });
   const [dragging, setDragging] = useState(false);
@@ -105,15 +100,19 @@ export default function Calendar() {
 
   // Lấy user hiện tại
   const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-  const isAdmin = currentUser?.role === 'Admin';
+  const calendarKey = `calendarEvents_${currentUser?.id}`;
 
-  if (isAdmin) {
-    return (
-      <div style={{ padding: 40, textAlign: 'center', color: '#1976d2', fontWeight: 600, fontSize: 22 }}>
-        Chức năng này chỉ dành cho nhân viên.
-      </div>
-    );
-  }
+  const [events, setEvents] = useState(() => {
+    const data = localStorage.getItem(calendarKey);
+    return data ? JSON.parse(data) : [];
+  });
+
+  useEffect(() => {
+    // Khi đổi user, load lại events
+    const data = localStorage.getItem(calendarKey);
+    setEvents(data ? JSON.parse(data) : []);
+    // eslint-disable-next-line
+  }, [currentUser?.id]);
 
   useEffect(() => {
     const data = localStorage.getItem('jobTypes');
@@ -205,14 +204,9 @@ export default function Calendar() {
   };
 
   const handleDelete = (event) => {
-    if (!isAdmin && event.userId !== currentUser?.id) {
-      setAlertMessage('Bạn chỉ có thể xóa lịch của chính mình!');
-      setOpenAlert(true);
-      return;
-    }
     const updatedEvents = events.filter(ev => ev.id !== event.id);
     setEvents(updatedEvents);
-    localStorage.setItem('calendarEvents', JSON.stringify(updatedEvents));
+    localStorage.setItem(calendarKey, JSON.stringify(updatedEvents));
     setShowForm(false);
     setSelectedEvent(null);
   };
@@ -230,7 +224,6 @@ export default function Calendar() {
       const oldEnd = new Date(selectedEvent.end);
       const startHour = formData.get('startHour');
       const endHour = formData.get('endHour');
-      // Nếu input khác giờ gốc thì mới cập nhật
       if (startHour && startHour !== editStartHour) {
         const [h, m] = startHour.split(':');
         oldStart.setHours(Number(h), Number(m), 0, 0);
@@ -252,7 +245,7 @@ export default function Calendar() {
         ev.id === selectedEvent.id ? updatedEvent : ev
       );
       setEvents(updatedEvents);
-      localStorage.setItem('calendarEvents', JSON.stringify(updatedEvents));
+      localStorage.setItem(calendarKey, JSON.stringify(updatedEvents));
     } else {
       // Thêm lịch mới
       start = formData.get('start');
@@ -267,7 +260,7 @@ export default function Calendar() {
       };
       const updatedEvents = [...events, newEvent];
       setEvents(updatedEvents);
-      localStorage.setItem('calendarEvents', JSON.stringify(updatedEvents));
+      localStorage.setItem(calendarKey, JSON.stringify(updatedEvents));
     }
     setShowForm(false);
     setSelectedEvent(null);
@@ -317,7 +310,7 @@ export default function Calendar() {
   };
 
   // Khi render calendar, chỉ lấy event phù hợp
-  const filteredEvents = isAdmin ? events : events.filter(ev => String(ev.userId) === String(currentUser?.id));
+  const filteredEvents = events.filter(ev => String(ev.userId) === String(currentUser?.id));
 
   // Đặt lại hàm getEventForCell đúng vị trí
   const getEventForCell = (date, hour) => {
@@ -358,6 +351,12 @@ export default function Calendar() {
       window.removeEventListener('mouseup', handleDragEnd);
     };
   }, [dragging]);
+
+  const calendarMatrix = getCalendarMatrix(month, year);
+  const weekDates = getWeekDates(selectedDate);
+
+  const tableRef = useRef(null);
+  const dayRefs = useRef([]);
 
   return (
     <div style={{
@@ -499,56 +498,56 @@ export default function Calendar() {
         overflow: 'auto',
         background: '#fff',
         borderRadius: 8,
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        maxWidth: 'auto',
+        minWidth: 'auto',
+        margin: '0 auto',
+        padding: '16px 0'
       }}>
         {/* Toolbar */}
         <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
           <span style={{ fontWeight: "bold", fontSize: 20 }}>Tháng {month + 1} </span>
         </div>
         {/* Lịch tuần */}
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            tableLayout: "fixed",
-            height: 900
-          }}
-          onMouseLeave={() => setIsDragging(false)}
-        >
-          <thead>
-            <tr>
-              <th style={{ width: 60, background: "#f4f4f4" }}></th>
-              {weekdays.map((thu, i) => {
-                const dateObj = new Date(weekDates[i]);
-                return (
-                  <th key={i} style={{ border: "1px solid #ccc", background: "#f4f4f4", textAlign: "center" }}>
-                    <div style={{ fontWeight: "bold" }}>{thu}</div>
-                    <div style={{ fontSize: 13, color: "#888" }}>
-                      {dateObj.getDate().toString().padStart(2, "0")}/{(dateObj.getMonth() + 1).toString().padStart(2, "0")}
-                    </div>
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-          <tbody style={{ height: "100%" }}>
-            {hours.map((hour, hourIndex) => (
-              <tr key={hourIndex}>
-                <td style={{ border: "1px solid #ccc", background: "#f4f4f4", fontWeight: "bold", height: 40, padding: 0 }}>{hour}</td>
-                {weekdays.map((thu, dayIndex) => {
-                  const dateStr = weekDates[dayIndex];
-                  // Lấy event cho từng cell
-                  const event = getEventForCell(dateStr, hours[hourIndex].replace('h', ''));
-                  // Kiểm tra xem ô này nằm trong khoảng thời gian của event không
-                  let isEventRange = false;
-                  if (event) {
-                    const start = new Date(event.start);
-                    const end = new Date(event.end);
-                    const cellDate = new Date(dateStr);
-                    cellDate.setHours(parseInt(hours[hourIndex]));
-                    isEventRange = cellDate >= start && cellDate <= end;
-                  }
+        <div style={{ position: 'relative', width: '100%', height: hours.length * 40 + 40 }}>
+          <table
+            ref={tableRef}
+            className="calendar-week-table"
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              tableLayout: "fixed",
+              height: 900,
+              position: 'relative',
+              zIndex: 1
+            }}
+            onMouseLeave={() => setIsDragging(false)}
+          >
+            <thead>
+              <tr>
+                <th style={{ width: 60, background: "#f4f4f4" }}></th>
+                {weekdays.map((thu, i) => {
+                  const dateObj = new Date(weekDates[i]);
                   return (
+                    <th
+                      key={i}
+                      ref={el => dayRefs.current[i] = el}
+                      style={{ border: "1px solid #ccc", background: "#f4f4f4", textAlign: "center" }}
+                    >
+                      <div style={{ fontWeight: "bold" }}>{thu}</div>
+                      <div style={{ fontSize: 13, color: "#888" }}>
+                        {dateObj.getDate().toString().padStart(2, "0")}/{(dateObj.getMonth() + 1).toString().padStart(2, "0")}
+                      </div>
+                    </th>
+                  );
+                })}
+              </tr>
+            </thead>
+            <tbody style={{ height: "100%" }}>
+              {hours.map((hour, hourIndex) => (
+                <tr key={hourIndex}>
+                  <td style={{ border: "1px solid #ccc", background: "#f4f4f4", fontWeight: "bold", height: 40, padding: 0 }}>{hour}</td>
+                  {weekdays.map((thu, dayIndex) => (
                     <td
                       key={dayIndex}
                       onMouseDown={(e) => handleMouseDown(e, hourIndex, dayIndex)}
@@ -557,51 +556,120 @@ export default function Calendar() {
                       style={{
                         border: "1px solid #ccc",
                         height: 40,
-                        background: isEventRange ? getJobTypeColor(event.jobType) : isCellSelected(hourIndex, dayIndex) ? "#e3f2fd" : hasEventInDay(dateStr) ? "#f5f5f5" : "#fff",
+                        background: isCellSelected(hourIndex, dayIndex) ? "#e3f2fd" : hasEventInDay(weekDates[dayIndex]) ? "#f5f5f5" : "#fff",
                         padding: 0,
-                        cursor: isEventRange || !hasEventInDay(dateStr) ? "pointer" : "not-allowed",
-                        opacity: isEventRange || !hasEventInDay(dateStr) ? 1 : 0.5,
+                        cursor: "pointer",
                         userSelect: "none",
                         position: "relative",
                         transition: "background-color 0.2s"
                       }}
                     >
-                      {isEventRange && event ? (
-                        <Tooltip
-                          title={
-                            <div>
-                              <div><b>Loại hình:</b> {event.jobType}</div>
-                              <div><b>Bắt đầu:</b> {event.start.replace('T', ' ')}</div>
-                              <div><b>Kết thúc:</b> {event.end.replace('T', ' ')}</div>
-                              <div><b>Mô tả:</b> {event.description}</div>
-                            </div>
-                          }
-                          arrow
-                          placement="top"
-                        >
-                          <div style={{
-                            width: '100%',
-                            height: '100%',
-                            background: getJobTypeColor(event.jobType),
-                            color: '#fff',
-                            borderRadius: 4,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: 13,
-                            fontWeight: 500
-                          }}>
-                            {event.jobType}
-                          </div>
-                        </Tooltip>
-                      ) : null}
                     </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {/* Overlay event blocks */}
+          {filteredEvents.map((event, idx) => {
+            // Tính toán vị trí block
+            const start = new Date(event.start);
+            const end = new Date(event.end);
+            // Tìm cột (ngày) bắt đầu/kết thúc
+            const startDayIdx = weekDates.findIndex(d => d === start.toISOString().slice(0, 10));
+            const endDayIdx = weekDates.findIndex(d => d === end.toISOString().slice(0, 10));
+            if (startDayIdx === -1 || endDayIdx === -1) return null;
+            // Tìm hàng (giờ) bắt đầu/kết thúc
+            const startHourIdx = hours.findIndex(h => parseInt(h) === start.getHours());
+            let endHourIdx = hours.findIndex(h => parseInt(h) === end.getHours());
+            if (endHourIdx === -1) endHourIdx = hours.length - 1;
+            // Lấy kích thước cell
+            const table = tableRef.current;
+            let cellW = 100, cellH = 40;
+            if (table) {
+              const cols = table.querySelectorAll('thead th');
+              if (cols.length > 1) cellW = cols[1].offsetWidth;
+              const rows = table.querySelectorAll('tbody tr');
+              if (rows.length > 0) cellH = rows[0].offsetHeight;
+            }
+            // Tính toán style (cột 0 là giờ, nên phải +1)
+            const left = dayRefs.current[startDayIdx]?.offsetLeft || 0;
+            const right = (dayRefs.current[endDayIdx]?.offsetLeft || 0) + (dayRefs.current[endDayIdx]?.offsetWidth || 0);
+            const width = right - left;
+            const top = (startHourIdx + 1) * cellH;
+            const height = (endHourIdx - startHourIdx + 1) * cellH;
+
+            // Hàm xử lý khi thả block
+            const handleStop = (e, data) => {
+              // Tính toán lại vị trí mới
+              const newDayIdx = Math.round(data.x / cellW) - 1; // -1 vì cột 0 là giờ
+              const newHourIdx = Math.round(data.y / cellH) - 1; // -1 vì hàng 0 là header
+              if (newDayIdx < 0 || newDayIdx > 6 || newHourIdx < 0 || newHourIdx > hours.length - 1) return;
+              // Tạo thời gian mới
+              const newDate = new Date(weekDates[newDayIdx]);
+              newDate.setHours(parseInt(hours[newHourIdx]), 0, 0, 0);
+              const duration = end - start;
+              const newStart = newDate;
+              const newEnd = new Date(newStart.getTime() + duration);
+              // Cập nhật event
+              const updatedEvent = { ...event, start: newStart.toISOString(), end: newEnd.toISOString() };
+              const updatedEvents = filteredEvents.map(ev => ev.id === event.id ? updatedEvent : ev);
+              setEvents(updatedEvents);
+              localStorage.setItem(calendarKey, JSON.stringify(updatedEvents));
+            };
+
+            return (
+              <Draggable
+                key={event.id}
+                axis="both"
+                grid={[cellW, cellH]}
+                defaultPosition={{
+                  x: left,
+                  y: top
+                }}
+                onStop={handleStop}
+                bounds="parent"
+              >
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    width,
+                    height,
+                    background: getJobTypeColor(event.jobType) || '#6b8e23',
+                    color: '#fff',
+                    borderRadius: 8,
+                    zIndex: 10,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    justifyContent: 'center',
+                    fontWeight: 600,
+                    fontSize: 15,
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
+                    cursor: 'pointer',
+                    opacity: 0.98,
+                    padding: '8px 12px',
+                    border: 'none',
+                    overflow: 'hidden',
+                    minHeight: 36
+                  }}
+                  title={`${event.jobType}\n${event.start.replace('T', ' ')} - ${event.end.replace('T', ' ')}\n${event.description || ''}`}
+                  onClick={() => { setSelectedEvent(event); setShowForm(true); }}
+                >
+                  <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 2 }}>{event.jobType}</div>
+                  <div style={{ fontWeight: 400, fontSize: 14, marginBottom: 2 }}>
+                    {`${new Date(event.start).getHours().toString().padStart(2, '0')}:${new Date(event.start).getMinutes().toString().padStart(2, '0')}`}
+                    {' - '}
+                    {`${new Date(event.end).getHours().toString().padStart(2, '0')}:${new Date(event.end).getMinutes().toString().padStart(2, '0')}`}
+                  </div>
+                  {event.description && <div style={{ fontWeight: 400, fontSize: 13 }}>{event.description}</div>}
+                </div>
+              </Draggable>
+            );
+          })}
+        </div>
 
         {/* Form đăng ký/chỉnh sửa */}
         {showForm && (

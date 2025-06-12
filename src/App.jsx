@@ -6,12 +6,10 @@ import Dashboard from './pages/dashboard/Dashboard';
 import EmployeeList from './pages/employee/EmployeeList';
 import Login from './pages/auth/Login';
 import PrivateRoute from './components/common/PrivateRoute';
-import EmployeeTable from './features/employee/EmployeeTable';
 import Calendar from './features/calendar/Calendar';
 import Home from './pages/Home';
 import UrVN from './pages/UrVN';
 import UrCor from './pages/UrCor';
-import EmployeeManagement from './pages/admin/EmployeeManagement.jsx';
 import RoleManagement from './pages/admin/RoleManagement.jsx';
 import CompanyManagement from './pages/admin/CompanyManagement.jsx';
 import JobTypeManagement from './pages/admin/JobTypeManagement.jsx';
@@ -57,11 +55,11 @@ const App = () => {
                 <EmployeeList />
               </ProtectedRoute>
             } />
-            <Route path="/admin/employees" element={
+            {/* <Route path="/admin/employees" element={
               <ProtectedRoute allowRoles={['Admin']}>
                 <EmployeeManagement />
               </ProtectedRoute>
-            } />
+            } /> */}
             <Route path="/admin/roles" element={
               <ProtectedRoute allowRoles={['Admin']}>
                 <RoleManagement />
@@ -86,7 +84,7 @@ const App = () => {
             <Route path="/profile" element={<Profile />} />
           </Route>
           <Route path="/login" element={<Login />} />
-          <Route path="/employee-table" element={<EmployeeTable />} />
+
         </Routes>
       </div>
     </div>

@@ -194,9 +194,16 @@ const CompanyManagement = () => {
             <Input placeholder="Nhập tên văn phòng" />
           </Form.Item>
           <Form.Item
+            name="address"
+            label="Địa chỉ"
+            rules={[{ required: true, message: 'Vui lòng nhập địa chỉ!' }]}
+          >
+            <Input placeholder="Nhập địa chỉ" />
+          </Form.Item>
+          <Form.Item
             name="description"
             label="Mô tả"
-            rules={[{ required: true, message: 'Vui lòng nhập mô tả!' }]}
+            rules={[]}
           >
             <Input.TextArea placeholder="Nhập mô tả" />
           </Form.Item>
