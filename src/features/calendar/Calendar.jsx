@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Select, MenuItem, FormControl, InputLabel, Tooltip } from '@mui/material';
+import { Select, MenuItem, FormControl, InputLabel, Tooltip, IconButton, Menu as MuiMenu } from '@mui/material';
 import AlertPopup from '../../components/common/AlertPopup';
 import Draggable from 'react-draggable';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 const weekdays = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
 const hours = ["7h", "8h", "9h", "10h", "11h", "12h", "13h", "14h", "15h", "16h", "17h", "18h", "19h", "20h", "21h"];
@@ -60,7 +61,7 @@ function getWeekDates(currentDateInput) {
   });
 }
 
-// Định nghĩa màu cho từng loại hình công việc
+// Định nghĩa màu cho từng loại công việc
 const jobTypeColors = {
   'Nghỉ': '#008000',
   'Công tác': '#000080',
@@ -97,6 +98,10 @@ export default function Calendar() {
   const [editEndHour, setEditEndHour] = useState('');
   const [openAlert, setOpenAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [menuEvent, setMenuEvent] = useState(null);
+  const [editMode, setEditMode] = useState(false);
+  const [tableReady, setTableReady] = useState(false);
 
   // Lấy user hiện tại
   const currentUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -163,7 +168,7 @@ export default function Calendar() {
     const event = getEventForCell(dateStr, hour);
     // Nếu đã có event trong ngày này và không phải click vào event thì không cho đăng ký thêm
     if (!event && hasEventInDay(dateStr)) {
-      setAlertMessage('Bạn chỉ được đăng ký 1 loại hình mỗi ngày. Muốn chỉnh sửa, hãy xóa lịch cũ trước!');
+      setAlertMessage('Bạn chỉ được đăng ký 1 công việc trong ngày. Muốn chỉnh sửa, hãy xóa lịch cũ trước!');
       setOpenAlert(true);
       return;
     }
@@ -271,21 +276,19 @@ export default function Calendar() {
 
   const handleFormClose = () => {
     setShowForm(false);
+    setEditMode(false);
+    setSelectedEvent(null);
     setStartCell(null);
     setEndCell(null);
     setSelectedCells([]);
   };
 
   const isCellSelected = (hourIndex, dayIndex) => {
+    if (!showForm && !isDragging) return false; // KHÔNG highlight nếu không show form và không kéo
     if (!startCell || !endCell) return false;
     if (startCell.dayIndex !== dayIndex) return false;
     const minHour = Math.min(startCell.hourIndex, endCell.hourIndex);
     const maxHour = Math.max(startCell.hourIndex, endCell.hourIndex);
-    // Nếu đang showForm (đã chọn xong), tô cả ô kết thúc
-    if (showForm) {
-      return hourIndex >= minHour && hourIndex <= maxHour;
-    }
-    // Khi đang kéo chọn, vẫn fill như cũ
     return hourIndex >= minHour && hourIndex <= maxHour;
   };
 
@@ -358,6 +361,44 @@ export default function Calendar() {
   const tableRef = useRef(null);
   const dayRefs = useRef([]);
 
+  const table = tableRef.current;
+  let cellH = 40; // Giá trị mặc định
+  if (table) {
+    const rows = table.querySelectorAll('tbody tr');
+    if (rows.length > 0) cellH = rows[0].offsetHeight;
+  }
+
+  // Thêm các hàm xử lý menu thẻ xanh
+  const handleMenuOpen = (event, e) => {
+    e.stopPropagation();
+    setAnchorEl(e.currentTarget);
+    setMenuEvent(event);
+  };
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setMenuEvent(null);
+  };
+  const handleViewEvent = () => {
+    setSelectedEvent(menuEvent);
+    setShowForm(true);
+    setEditMode(false);
+    handleMenuClose();
+  };
+  const handleDeleteEvent = () => {
+    handleDelete(menuEvent);
+    handleMenuClose();
+  };
+
+  // Tạo mảng giờ cho select
+  const hourOptions = Array.from({ length: 22 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
+
+  useEffect(() => {
+    // Khi table và dayRefs đã render xong
+    if (dayRefs.current.every(ref => ref && ref.offsetLeft !== undefined)) {
+      setTableReady(true);
+    }
+  }, [weekDates]);
+
   return (
     <div style={{
       width: '100%',
@@ -378,40 +419,6 @@ export default function Calendar() {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <span style={{ fontWeight: "bold", fontSize: 18 }}>
               Tháng {month + 1} năm {year}
-            </span>
-            <span style={{ display: "flex", gap: 8 }}>
-              {/* Button prev month */}
-              <button
-                onClick={prevMonth}
-                style={{
-                  width: 40,
-                  height: 40,
-                  border: "1px solidrgb(136,136,136)",
-                  background: "#888",
-                  color: "#000",
-                  borderRadius: 8,
-                  fontSize: 24,
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                  transition: "background 0.2s"
-                }}
-              >&lt;</button>
-              {/* Button next month */}
-              <button
-                onClick={nextMonth}
-                style={{
-                  width: 40,
-                  height: 40,
-                  border: "1px solidrgb(136,136,136)",
-                  background: "#888",
-                  color: "#000",
-                  borderRadius: 8,
-                  fontSize: 24,
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                  transition: "background 0.2s"
-                }}
-              >&gt;</button>
             </span>
           </div>
           <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
@@ -490,6 +497,20 @@ export default function Calendar() {
               ))}
             </tbody>
           </table>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 8 }}>
+            <button
+              onClick={prevMonth}
+              style={{ minWidth: 100, height: 36, border: "1px solid #888", background: "#f4f4f4", color: "#222", borderRadius: 8, fontSize: 16, fontWeight: 600, cursor: "pointer", transition: "background 0.2s" }}
+            >
+              Tháng trước
+            </button>
+            <button
+              onClick={nextMonth}
+              style={{ minWidth: 100, height: 36, border: "1px solid #888", background: "#f4f4f4", color: "#222", borderRadius: 8, fontSize: 16, fontWeight: 600, cursor: "pointer", transition: "background 0.2s" }}
+            >
+              Tháng sau
+            </button>
+          </div>
         </div>
       </div>
       {/* Cột phải: Lịch tuần */}
@@ -509,7 +530,7 @@ export default function Calendar() {
           <span style={{ fontWeight: "bold", fontSize: 20 }}>Tháng {month + 1} </span>
         </div>
         {/* Lịch tuần */}
-        <div style={{ position: 'relative', width: '100%', height: hours.length * 40 + 40 }}>
+        <div style={{ position: 'relative', width: '100%', height: (hours.length + 1) * cellH }}>
           <table
             ref={tableRef}
             className="calendar-week-table"
@@ -525,14 +546,25 @@ export default function Calendar() {
           >
             <thead>
               <tr>
-                <th style={{ width: 60, background: "#f4f4f4" }}></th>
+                <th style={{ width: `${100 / (weekdays.length + 1)}%`, minWidth: 80, maxWidth: 120, height: 48, background: "#f4f4f4", textAlign: 'center', fontWeight: 700, fontSize: 16, border: '1px solid #ccc', boxSizing: 'border-box' }}></th>
                 {weekdays.map((thu, i) => {
                   const dateObj = new Date(weekDates[i]);
                   return (
                     <th
                       key={i}
                       ref={el => dayRefs.current[i] = el}
-                      style={{ border: "1px solid #ccc", background: "#f4f4f4", textAlign: "center" }}
+                      style={{
+                        width: `${100 / (weekdays.length + 1)}%`,
+                        minWidth: 80,
+                        maxWidth: 120,
+                        height: 54,
+                        background: "#f4f4f4",
+                        textAlign: "center",
+                        fontWeight: 700,
+                        fontSize: 16,
+                        border: '1px solid #ccc',
+                        boxSizing: 'border-box'
+                      }}
                     >
                       <div style={{ fontWeight: "bold" }}>{thu}</div>
                       <div style={{ fontSize: 13, color: "#888" }}>
@@ -546,23 +578,27 @@ export default function Calendar() {
             <tbody style={{ height: "100%" }}>
               {hours.map((hour, hourIndex) => (
                 <tr key={hourIndex}>
-                  <td style={{ border: "1px solid #ccc", background: "#f4f4f4", fontWeight: "bold", height: 40, padding: 0 }}>{hour}</td>
+                  <td style={{ width: `${100 / (weekdays.length + 1)}%`, minWidth: 80, maxWidth: 120, height: 40, background: "#f4f4f4", fontWeight: "bold", textAlign: 'center', fontSize: 15, padding: 0, border: '1px solid #ccc', boxSizing: 'border-box' }}>{hour}</td>
                   {weekdays.map((thu, dayIndex) => (
                     <td
                       key={dayIndex}
-                      onMouseDown={(e) => handleMouseDown(e, hourIndex, dayIndex)}
-                      onMouseMove={(e) => handleMouseMove(e, hourIndex, dayIndex)}
-                      onMouseUp={handleMouseUp}
                       style={{
-                        border: "1px solid #ccc",
+                        width: `${100 / (weekdays.length + 1)}%`,
+                        minWidth: 80,
+                        maxWidth: 120,
                         height: 40,
-                        background: isCellSelected(hourIndex, dayIndex) ? "#e3f2fd" : hasEventInDay(weekDates[dayIndex]) ? "#f5f5f5" : "#fff",
                         padding: 0,
+                        border: "1px solid #ccc",
+                        background: isCellSelected(hourIndex, dayIndex) ? "#e3f2fd" : hasEventInDay(weekDates[dayIndex]) ? "#f5f5f5" : "#fff",
                         cursor: "pointer",
                         userSelect: "none",
                         position: "relative",
-                        transition: "background-color 0.2s"
+                        transition: "background-color 0.2s",
+                        boxSizing: 'border-box'
                       }}
+                      onMouseDown={(e) => handleMouseDown(e, hourIndex, dayIndex)}
+                      onMouseMove={(e) => handleMouseMove(e, hourIndex, dayIndex)}
+                      onMouseUp={handleMouseUp}
                     >
                     </td>
                   ))}
@@ -571,7 +607,7 @@ export default function Calendar() {
             </tbody>
           </table>
           {/* Overlay event blocks */}
-          {filteredEvents.map((event, idx) => {
+          {tableReady && filteredEvents.map((event, idx) => {
             // Tính toán vị trí block
             const start = new Date(event.start);
             const end = new Date(event.end);
@@ -602,8 +638,8 @@ export default function Calendar() {
             // Hàm xử lý khi thả block
             const handleStop = (e, data) => {
               // Tính toán lại vị trí mới
-              const newDayIdx = Math.round(data.x / cellW) - 1; // -1 vì cột 0 là giờ
-              const newHourIdx = Math.round(data.y / cellH) - 1; // -1 vì hàng 0 là header
+              const newDayIdx = Math.max(0, Math.min(weekdays.length - 1, Math.round(data.x / cellW) - 1));
+              const newHourIdx = Math.max(0, Math.min(hours.length - 1, Math.round(data.y / cellH) - 1));
               if (newDayIdx < 0 || newDayIdx > 6 || newHourIdx < 0 || newHourIdx > hours.length - 1) return;
               // Tạo thời gian mới
               const newDate = new Date(weekDates[newDayIdx]);
@@ -611,6 +647,22 @@ export default function Calendar() {
               const duration = end - start;
               const newStart = newDate;
               const newEnd = new Date(newStart.getTime() + duration);
+              // Kiểm tra ngày đã có event khác chưa
+              const newDateStr = weekDates[newDayIdx];
+              const hasOtherEvent = events.some(ev => {
+                if (ev.id === event.id) return false;
+                const evStart = new Date(ev.start);
+                const yyyy = evStart.getFullYear();
+                const mm = String(evStart.getMonth() + 1).padStart(2, '0');
+                const dd = String(evStart.getDate()).padStart(2, '0');
+                const localDate = `${yyyy}-${mm}-${dd}`;
+                return localDate === newDateStr;
+              });
+              if (hasOtherEvent) {
+                setAlertMessage('Ngày này đã có lịch đăng ký!');
+                setOpenAlert(true);
+                return;
+              }
               // Cập nhật event
               const updatedEvent = { ...event, start: newStart.toISOString(), end: newEnd.toISOString() };
               const updatedEvents = filteredEvents.map(ev => ev.id === event.id ? updatedEvent : ev);
@@ -623,12 +675,14 @@ export default function Calendar() {
                 key={event.id}
                 axis="both"
                 grid={[cellW, cellH]}
-                defaultPosition={{
-                  x: left,
-                  y: top
+                bounds={{
+                  left: dayRefs.current[0]?.offsetLeft || 0,
+                  top: cellH,
+                  right: (dayRefs.current[weekdays.length - 1]?.offsetLeft || 0) + (dayRefs.current[weekdays.length - 1]?.offsetWidth || 0) - width,
+                  bottom: (hours.length) * cellH - height + cellH
                 }}
+                position={{ x: left, y: top }}
                 onStop={handleStop}
-                bounds="parent"
               >
                 <div
                   style={{
@@ -656,8 +710,15 @@ export default function Calendar() {
                     minHeight: 36
                   }}
                   title={`${event.jobType}\n${event.start.replace('T', ' ')} - ${event.end.replace('T', ' ')}\n${event.description || ''}`}
-                  onClick={() => { setSelectedEvent(event); setShowForm(true); }}
                 >
+                  {/* Dấu 3 chấm menu */}
+                  <IconButton
+                    size="small"
+                    sx={{ position: 'absolute', top: 2, right: 2, color: 'white', zIndex: 11, background: 'rgba(0,0,0,0.08)' }}
+                    onClick={e => handleMenuOpen(event, e)}
+                  >
+                    <MoreVertIcon fontSize="small" />
+                  </IconButton>
                   <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 2 }}>{event.jobType}</div>
                   <div style={{ fontWeight: 400, fontSize: 14, marginBottom: 2 }}>
                     {`${new Date(event.start).getHours().toString().padStart(2, '0')}:${new Date(event.start).getMinutes().toString().padStart(2, '0')}`}
@@ -693,13 +754,9 @@ export default function Calendar() {
               style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', cursor: 'move' }}
               onMouseDown={handleDragStart}
             >
-              <h3 style={{ margin: 0 }}>{selectedEvent ? 'Chi tiết lịch' : 'Đăng ký lịch'}</h3>
+              <h3 style={{ margin: 0 }}>{selectedEvent ? (editMode ? 'Sửa lịch' : 'Chi tiết lịch') : 'Đăng ký lịch'}</h3>
               <button
-                onClick={() => {
-                  setShowForm(false);
-                  setSelectedEvent(null);
-                  setSelectedCells([]);
-                }}
+                onClick={handleFormClose}
                 style={{
                   border: 'none',
                   background: 'none',
@@ -712,56 +769,146 @@ export default function Calendar() {
               </button>
             </div>
             {selectedEvent ? (
-              <form>
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px' }}>Thời gian bắt đầu</label>
-                  <input
-                    type="time"
-                    value={selectedEvent.start.slice(11, 16)}
-                    readOnly
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', background: '#f5f5f5' }}
-                  />
-                </div>
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px' }}>Thời gian kết thúc</label>
-                  <input
-                    type="time"
-                    value={selectedEvent.end.slice(11, 16)}
-                    readOnly
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', background: '#f5f5f5' }}
-                  />
-                </div>
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px' }}>Mô tả</label>
-                  <textarea
-                    value={selectedEvent.description || ''}
-                    readOnly
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', minHeight: '100px', background: '#f5f5f5' }}
-                  />
-                </div>
-                <FormControl fullWidth sx={{ mb: 2 }}>
-                  <InputLabel id="jobtype-label">Loại hình việc làm</InputLabel>
-                  <Select
-                    labelId="jobtype-label"
-                    value={selectedEvent.jobType}
-                    label="Loại hình việc làm"
-                    readOnly
-                    disabled
-                  >
-                    <MenuItem value={selectedEvent.jobType}>{selectedEvent.jobType}</MenuItem>
-                  </Select>
-                </FormControl>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(selectedEvent)}
-                    style={{ flex: 1, background: '#dc3545', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    Xóa
-                  </button>
-                </div>
-              </form>
+              editMode ? (
+                // Form sửa lịch
+                <form onSubmit={e => {
+                  e.preventDefault();
+                  const formData = new FormData(e.target);
+                  // Lấy giờ mới
+                  const startTime = formData.get('start'); // dạng HH:00
+                  const endTime = formData.get('end');
+                  // Lấy ngày cũ
+                  const oldStart = new Date(selectedEvent.start);
+                  const oldEnd = new Date(selectedEvent.end);
+                  // Gán giờ mới vào ngày cũ
+                  const [sh] = startTime.split(':');
+                  const [eh] = endTime.split(':');
+                  oldStart.setHours(Number(sh), 0, 0, 0);
+                  oldEnd.setHours(Number(eh), 0, 0, 0);
+                  // Lưu lại event
+                  const updatedEvent = {
+                    ...selectedEvent,
+                    start: oldStart.toISOString(),
+                    end: oldEnd.toISOString(),
+                    description: formData.get('description'),
+                    jobType: formData.get('jobType')
+                  };
+                  const updatedEvents = events.map(ev => ev.id === selectedEvent.id ? updatedEvent : ev);
+                  setEvents(updatedEvents);
+                  localStorage.setItem(calendarKey, JSON.stringify(updatedEvents));
+                  setEditMode(false);
+                  setShowForm(false);
+                  setSelectedEvent(null);
+                }}>
+                  <div style={{ marginBottom: '15px' }}>
+                    <label style={{ display: 'block', marginBottom: '5px' }}>Thời gian bắt đầu</label>
+                    <select
+                      name="start"
+                      defaultValue={new Date(selectedEvent.start).getHours().toString().padStart(2, '0') + ':00'}
+                      style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: 16 }}
+                      required
+                    >
+                      {hourOptions.map(h => <option key={h} value={h}>{h}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ marginBottom: '15px' }}>
+                    <label style={{ display: 'block', marginBottom: '5px' }}>Thời gian kết thúc</label>
+                    <select
+                      name="end"
+                      defaultValue={new Date(selectedEvent.end).getHours().toString().padStart(2, '0') + ':00'}
+                      style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: 16 }}
+                      required
+                    >
+                      {hourOptions.map(h => <option key={h} value={h}>{h}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ marginBottom: '15px' }}>
+                    <label style={{ display: 'block', marginBottom: '5px' }}>Mô tả</label>
+                    <textarea
+                      name="description"
+                      defaultValue={selectedEvent.description || ''}
+                      style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', minHeight: '100px' }}
+                    />
+                  </div>
+                  <FormControl fullWidth sx={{ mb: 2 }}>
+                    <InputLabel id="jobtype-label">Loại công việc</InputLabel>
+                    <Select
+                      labelId="jobtype-label"
+                      name="jobType"
+                      value={selectedEvent.jobType}
+                      label="Loại công việc"
+                      onChange={e => setSelectedEvent({ ...selectedEvent, jobType: e.target.value })}
+                    >
+                      {jobTypes.map((type) => (
+                        <MenuItem key={type.id} value={type.name}>{type.name}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      type="submit"
+                      style={{ flex: 1, background: '#007bff', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer' }}
+                    >
+                      Lưu
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                // Form xem chi tiết lịch
+                <>
+                  <form>
+                    <div style={{ marginBottom: '15px' }}>
+                      <label style={{ display: 'block', marginBottom: '5px' }}>Thời gian bắt đầu</label>
+                      <input
+                        type="text"
+                        value={new Date(selectedEvent.start).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                        readOnly
+                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', background: '#f5f5f5' }}
+                      />
+                    </div>
+                    <div style={{ marginBottom: '15px' }}>
+                      <label style={{ display: 'block', marginBottom: '5px' }}>Thời gian kết thúc</label>
+                      <input
+                        type="text"
+                        value={new Date(selectedEvent.end).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                        readOnly
+                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', background: '#f5f5f5' }}
+                      />
+                    </div>
+                    <div style={{ marginBottom: '15px' }}>
+                      <label style={{ display: 'block', marginBottom: '5px' }}>Mô tả</label>
+                      <textarea
+                        value={selectedEvent.description || ''}
+                        readOnly
+                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', minHeight: '100px', background: '#f5f5f5' }}
+                      />
+                    </div>
+                    <FormControl fullWidth sx={{ mb: 2 }}>
+                      <InputLabel id="jobtype-label">Loại công việc</InputLabel>
+                      <Select
+                        labelId="jobtype-label"
+                        value={selectedEvent.jobType}
+                        label="Loại công việc"
+                        readOnly
+                        disabled
+                      >
+                        <MenuItem value={selectedEvent.jobType}>{selectedEvent.jobType}</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </form>
+                  <div style={{ display: 'flex', gap: '10px', marginTop: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => setEditMode(true)}
+                      style={{ flex: 1, background: '#007bff', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer' }}
+                    >
+                      Sửa
+                    </button>
+                  </div>
+                </>
+              )
             ) : (
+              // Form cho event mới (đăng ký lịch)
               <form onSubmit={handleUpdateEvent}>
                 <div style={{ marginBottom: '15px' }}>
                   <label style={{ display: 'block', marginBottom: '5px' }}>Thời gian bắt đầu</label>
@@ -791,22 +938,24 @@ export default function Calendar() {
                   />
                 </div>
                 <FormControl fullWidth sx={{ mb: 2 }}>
-                  <InputLabel id="jobtype-label">Loại hình việc làm</InputLabel>
+                  <InputLabel id="jobtype-label">Loại công việc</InputLabel>
                   <Select
                     labelId="jobtype-label"
                     name="jobType"
-                    label="Loại hình việc làm"
+                    value={selectedJobType}
+                    label="Loại công việc"
+                    onChange={e => setSelectedJobType(e.target.value)}
                     required
                   >
-                    {jobTypes.map((jt) => (
-                      <MenuItem key={jt.id} value={jt.name}>{jt.name}</MenuItem>
+                    {jobTypes.map((type) => (
+                      <MenuItem key={type.id} value={type.name}>{type.name}</MenuItem>
                     ))}
                   </Select>
                 </FormControl>
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button
                     type="submit"
-                    style={{ flex: 1, background: '#2323c9', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer' }}
+                    style={{ flex: 1, background: '#007bff', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer' }}
                   >
                     Đăng ký
                   </button>
@@ -817,6 +966,15 @@ export default function Calendar() {
         )}
       </div>
       <AlertPopup open={openAlert} message={alertMessage} type="error" onClose={() => setOpenAlert(false)} />
+      {/* Menu 3 chấm */}
+      <MuiMenu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+      >
+        <MenuItem onClick={handleViewEvent}>Chi tiết lịch</MenuItem>
+        <MenuItem onClick={handleDeleteEvent}>Xóa lịch</MenuItem>
+      </MuiMenu>
     </div>
   );
 }

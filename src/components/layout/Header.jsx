@@ -81,22 +81,22 @@ const Header = ({ onMenuClick }) => {
               ĐĂNG NHẬP
             </Link>
           ) : (
-            <span
-              className="urban-header__nav-item"
-              style={{ cursor: "pointer" }}
-              onClick={handleLogout}
-            >
-              ĐĂNG XUẤT
-            </span>
-          )}
-          {isAuthenticated && (
-            <IconButton
-              sx={{ ml: 2 }}
-              onClick={() => setOpenProfileModal(true)}
-              color="primary"
-            >
-              <AccountCircleIcon fontSize="large" />
-            </IconButton>
+            <>
+              <span
+                className="urban-header__nav-item"
+                style={{ cursor: "pointer", fontWeight: 600, color: '#1976d2', marginRight: 8 }}
+                onClick={() => setOpenProfileModal(true)}
+              >
+                {user?.name || user?.username || 'Người dùng'}
+              </span>
+              <IconButton
+                sx={{ ml: 1 }}
+                onClick={() => setOpenProfileModal(true)}
+                color="primary"
+              >
+                <AccountCircleIcon fontSize="large" />
+              </IconButton>
+            </>
           )}
         </div>
       </nav>

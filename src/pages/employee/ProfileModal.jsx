@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Box, Typography, Button, TextField, FormControl, InputLabel, Select, MenuItem, Paper } from '@mui/material';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import AlertPopup from '../../components/common/AlertPopup';
+import { logout } from '../../features/auth/authSlice';
+import { useNavigate } from 'react-router-dom';
 
 const EMPLOYEE_KEY = 'employees';
 
 const ProfileModal = ({ open, onClose }) => {
     const user = useSelector(state => state.auth.user) || JSON.parse(localStorage.getItem('currentUser'));
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
     const [employee, setEmployee] = useState(null);
     const [isEditMode, setIsEditMode] = useState(false);
     const [editEmployee, setEditEmployee] = useState(null);
@@ -43,6 +47,11 @@ const ProfileModal = ({ open, onClose }) => {
         setIsEditMode(false);
     };
 
+    const handleLogout = () => {
+        dispatch(logout());
+        navigate('/login');
+    };
+
     if (!user || !employee) return null;
 
     return (
@@ -64,6 +73,7 @@ const ProfileModal = ({ open, onClose }) => {
                         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
                             <Button variant="contained" onClick={() => { setIsEditMode(true); setEditEmployee(employee); }}>Chỉnh sửa</Button>
                             <Button onClick={onClose}>Đóng</Button>
+                            <Button color="error" variant="outlined" onClick={handleLogout}>Đăng xuất</Button>
                         </Box>
                     </>
                 ) : (
