@@ -98,9 +98,12 @@ export default function Calendar() {
   const [editEndHour, setEditEndHour] = useState('');
   const [openAlert, setOpenAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
+<<<<<<< HEAD
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuEvent, setMenuEvent] = useState(null);
   const [editMode, setEditMode] = useState(false);
+=======
+>>>>>>> 7148391c86752617ccb3c22e82d2f5a182559d7b
   const [tableReady, setTableReady] = useState(false);
 
   // Lấy user hiện tại
@@ -360,6 +363,17 @@ export default function Calendar() {
 
   const tableRef = useRef(null);
   const dayRefs = useRef([]);
+  const [cellW, setCellW] = useState(100);
+
+  useEffect(() => {
+    if (tableRef.current) {
+      const cols = tableRef.current.querySelectorAll('thead th');
+      if (cols.length > 1) {
+        setCellW(cols[1].offsetWidth);
+        setTableReady(true);
+      }
+    }
+  }, [month, year, hours, weekdays]);
 
   const table = tableRef.current;
   let cellH = 40; // Giá trị mặc định
@@ -546,7 +560,11 @@ export default function Calendar() {
           >
             <thead>
               <tr>
+<<<<<<< HEAD
                 <th style={{ width: `${100 / (weekdays.length + 1)}%`, minWidth: 80, maxWidth: 120, height: 48, background: "#f4f4f4", textAlign: 'center', fontWeight: 700, fontSize: 16, border: '1px solid #ccc', boxSizing: 'border-box' }}></th>
+=======
+                <th style={{ width: cellW, background: "#f4f4f4" }}></th>
+>>>>>>> 7148391c86752617ccb3c22e82d2f5a182559d7b
                 {weekdays.map((thu, i) => {
                   const dateObj = new Date(weekDates[i]);
                   return (
@@ -578,7 +596,11 @@ export default function Calendar() {
             <tbody style={{ height: "100%" }}>
               {hours.map((hour, hourIndex) => (
                 <tr key={hourIndex}>
+<<<<<<< HEAD
                   <td style={{ width: `${100 / (weekdays.length + 1)}%`, minWidth: 80, maxWidth: 120, height: 40, background: "#f4f4f4", fontWeight: "bold", textAlign: 'center', fontSize: 15, padding: 0, border: '1px solid #ccc', boxSizing: 'border-box' }}>{hour}</td>
+=======
+                  <td style={{ border: "1px solid #ccc", background: "#f4f4f4", fontWeight: "bold", height: 40, padding: 0, width: cellW }}>{hour}</td>
+>>>>>>> 7148391c86752617ccb3c22e82d2f5a182559d7b
                   {weekdays.map((thu, dayIndex) => (
                     <td
                       key={dayIndex}
@@ -607,10 +629,16 @@ export default function Calendar() {
             </tbody>
           </table>
           {/* Overlay event blocks */}
+<<<<<<< HEAD
           {tableReady && filteredEvents.map((event, idx) => {
+=======
+          {tableReady && cellW > 80 && filteredEvents.map((event, idx) => {
+>>>>>>> 7148391c86752617ccb3c22e82d2f5a182559d7b
             // Tính toán vị trí block
             const start = new Date(event.start);
             const end = new Date(event.end);
+            // Debug log
+            console.log('event.start:', event.start, 'start.getHours():', start.getHours(), 'startHourIdx:', hours.findIndex(h => parseInt(h) === start.getHours()), 'hours:', hours);
             // Tìm cột (ngày) bắt đầu/kết thúc
             const startDayIdx = weekDates.findIndex(d => d === start.toISOString().slice(0, 10));
             const endDayIdx = weekDates.findIndex(d => d === end.toISOString().slice(0, 10));
@@ -629,14 +657,14 @@ export default function Calendar() {
               if (rows.length > 0) cellH = rows[0].offsetHeight;
             }
             // Tính toán style (cột 0 là giờ, nên phải +1)
-            const left = dayRefs.current[startDayIdx]?.offsetLeft || 0;
-            const right = (dayRefs.current[endDayIdx]?.offsetLeft || 0) + (dayRefs.current[endDayIdx]?.offsetWidth || 0);
-            const width = right - left;
-            const top = (startHourIdx + 1) * cellH;
+            const left = cellW * (startDayIdx + 1);
+            const width = cellW;
+            const top = startHourIdx * cellH;
             const height = (endHourIdx - startHourIdx + 1) * cellH;
 
             // Hàm xử lý khi thả block
             const handleStop = (e, data) => {
+<<<<<<< HEAD
               // Tính toán lại vị trí mới
               const newDayIdx = Math.max(0, Math.min(weekdays.length - 1, Math.round(data.x / cellW) - 1));
               const newHourIdx = Math.max(0, Math.min(hours.length - 1, Math.round(data.y / cellH) - 1));
@@ -663,6 +691,18 @@ export default function Calendar() {
                 setOpenAlert(true);
                 return;
               }
+=======
+              // Tính toán lại vị trí mới (chỉ đổi ngày, giữ nguyên giờ)
+              const newDayIdx = Math.round(data.x / cellW) - 1; // -1 vì cột 0 là giờ
+              if (newDayIdx < 0 || newDayIdx > weekdays.length - 1) return;
+              // Giữ nguyên giờ bắt đầu/kết thúc
+              const oldStart = new Date(event.start);
+              const oldEnd = new Date(event.end);
+              const newStart = new Date(weekDates[newDayIdx]);
+              newStart.setHours(oldStart.getHours(), oldStart.getMinutes(), 0, 0);
+              const newEnd = new Date(weekDates[newDayIdx]);
+              newEnd.setHours(oldEnd.getHours(), oldEnd.getMinutes(), 0, 0);
+>>>>>>> 7148391c86752617ccb3c22e82d2f5a182559d7b
               // Cập nhật event
               const updatedEvent = { ...event, start: newStart.toISOString(), end: newEnd.toISOString() };
               const updatedEvents = filteredEvents.map(ev => ev.id === event.id ? updatedEvent : ev);
@@ -670,10 +710,12 @@ export default function Calendar() {
               localStorage.setItem(calendarKey, JSON.stringify(updatedEvents));
             };
 
+            const numDays = weekdays.length;
+
             return (
               <Draggable
                 key={event.id}
-                axis="both"
+                axis="x"
                 grid={[cellW, cellH]}
                 bounds={{
                   left: dayRefs.current[0]?.offsetLeft || 0,
@@ -681,8 +723,14 @@ export default function Calendar() {
                   right: (dayRefs.current[weekdays.length - 1]?.offsetLeft || 0) + (dayRefs.current[weekdays.length - 1]?.offsetWidth || 0) - width,
                   bottom: (hours.length) * cellH - height + cellH
                 }}
+<<<<<<< HEAD
                 position={{ x: left, y: top }}
                 onStop={handleStop}
+=======
+                position={null}
+                onStop={handleStop}
+                bounds={{ left: cellW, right: cellW * numDays }}
+>>>>>>> 7148391c86752617ccb3c22e82d2f5a182559d7b
               >
                 <div
                   style={{
