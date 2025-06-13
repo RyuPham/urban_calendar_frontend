@@ -97,6 +97,7 @@ export default function Calendar() {
   const [editEndHour, setEditEndHour] = useState('');
   const [openAlert, setOpenAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
+  const [tableReady, setTableReady] = useState(false);
 
   // Lấy user hiện tại
   const currentUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -357,6 +358,17 @@ export default function Calendar() {
 
   const tableRef = useRef(null);
   const dayRefs = useRef([]);
+  const [cellW, setCellW] = useState(100);
+
+  useEffect(() => {
+    if (tableRef.current) {
+      const cols = tableRef.current.querySelectorAll('thead th');
+      if (cols.length > 1) {
+        setCellW(cols[1].offsetWidth);
+        setTableReady(true);
+      }
+    }
+  }, [month, year, hours, weekdays]);
 
   return (
     <div style={{
@@ -525,7 +537,7 @@ export default function Calendar() {
           >
             <thead>
               <tr>
-                <th style={{ width: 60, background: "#f4f4f4" }}></th>
+                <th style={{ width: cellW, background: "#f4f4f4" }}></th>
                 {weekdays.map((thu, i) => {
                   const dateObj = new Date(weekDates[i]);
                   return (
@@ -546,7 +558,7 @@ export default function Calendar() {
             <tbody style={{ height: "100%" }}>
               {hours.map((hour, hourIndex) => (
                 <tr key={hourIndex}>
-                  <td style={{ border: "1px solid #ccc", background: "#f4f4f4", fontWeight: "bold", height: 40, padding: 0 }}>{hour}</td>
+                  <td style={{ border: "1px solid #ccc", background: "#f4f4f4", fontWeight: "bold", height: 40, padding: 0, width: cellW }}>{hour}</td>
                   {weekdays.map((thu, dayIndex) => (
                     <td
                       key={dayIndex}
@@ -571,10 +583,12 @@ export default function Calendar() {
             </tbody>
           </table>
           {/* Overlay event blocks */}
-          {filteredEvents.map((event, idx) => {
+          {tableReady && cellW > 80 && filteredEvents.map((event, idx) => {
             // Tính toán vị trí block
             const start = new Date(event.start);
             const end = new Date(event.end);
+            // Debug log
+            console.log('event.start:', event.start, 'start.getHours():', start.getHours(), 'startHourIdx:', hours.findIndex(h => parseInt(h) === start.getHours()), 'hours:', hours);
             // Tìm cột (ngày) bắt đầu/kết thúc
             const startDayIdx = weekDates.findIndex(d => d === start.toISOString().slice(0, 10));
             const endDayIdx = weekDates.findIndex(d => d === end.toISOString().slice(0, 10));
@@ -593,24 +607,23 @@ export default function Calendar() {
               if (rows.length > 0) cellH = rows[0].offsetHeight;
             }
             // Tính toán style (cột 0 là giờ, nên phải +1)
-            const left = dayRefs.current[startDayIdx]?.offsetLeft || 0;
-            const right = (dayRefs.current[endDayIdx]?.offsetLeft || 0) + (dayRefs.current[endDayIdx]?.offsetWidth || 0);
-            const width = right - left;
-            const top = (startHourIdx + 1) * cellH;
+            const left = cellW * (startDayIdx + 1);
+            const width = cellW;
+            const top = startHourIdx * cellH;
             const height = (endHourIdx - startHourIdx + 1) * cellH;
 
             // Hàm xử lý khi thả block
             const handleStop = (e, data) => {
-              // Tính toán lại vị trí mới
+              // Tính toán lại vị trí mới (chỉ đổi ngày, giữ nguyên giờ)
               const newDayIdx = Math.round(data.x / cellW) - 1; // -1 vì cột 0 là giờ
-              const newHourIdx = Math.round(data.y / cellH) - 1; // -1 vì hàng 0 là header
-              if (newDayIdx < 0 || newDayIdx > 6 || newHourIdx < 0 || newHourIdx > hours.length - 1) return;
-              // Tạo thời gian mới
-              const newDate = new Date(weekDates[newDayIdx]);
-              newDate.setHours(parseInt(hours[newHourIdx]), 0, 0, 0);
-              const duration = end - start;
-              const newStart = newDate;
-              const newEnd = new Date(newStart.getTime() + duration);
+              if (newDayIdx < 0 || newDayIdx > weekdays.length - 1) return;
+              // Giữ nguyên giờ bắt đầu/kết thúc
+              const oldStart = new Date(event.start);
+              const oldEnd = new Date(event.end);
+              const newStart = new Date(weekDates[newDayIdx]);
+              newStart.setHours(oldStart.getHours(), oldStart.getMinutes(), 0, 0);
+              const newEnd = new Date(weekDates[newDayIdx]);
+              newEnd.setHours(oldEnd.getHours(), oldEnd.getMinutes(), 0, 0);
               // Cập nhật event
               const updatedEvent = { ...event, start: newStart.toISOString(), end: newEnd.toISOString() };
               const updatedEvents = filteredEvents.map(ev => ev.id === event.id ? updatedEvent : ev);
@@ -618,17 +631,20 @@ export default function Calendar() {
               localStorage.setItem(calendarKey, JSON.stringify(updatedEvents));
             };
 
+            const numDays = weekdays.length;
+
             return (
               <Draggable
                 key={event.id}
-                axis="both"
+                axis="x"
                 grid={[cellW, cellH]}
                 defaultPosition={{
                   x: left,
                   y: top
                 }}
+                position={null}
                 onStop={handleStop}
-                bounds="parent"
+                bounds={{ left: cellW, right: cellW * numDays }}
               >
                 <div
                   style={{
