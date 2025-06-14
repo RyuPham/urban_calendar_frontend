@@ -169,7 +169,7 @@ const RoleManagement = () => {
                     columns={columns}
                     dataSource={roles}
                     rowKey="id"
-                    pagination={{ pageSize: 10 }}
+                    pagination={{ position: ['bottomCenter'] }}
                     locale={{
                         emptyText: (
                             <div style={{ textAlign: 'center', color: '#bfbfbf', padding: 40 }}>

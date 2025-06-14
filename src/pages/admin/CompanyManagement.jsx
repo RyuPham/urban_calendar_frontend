@@ -66,10 +66,10 @@ const CompanyManagement = () => {
   const handleDelete = (id) => {
     Modal.confirm({
       title: 'Xác nhận xóa',
-      content: 'Bạn có chắc chắn muốn xóa công ty này?',
+      content: 'Bạn có chắc chắn muốn xóa văn phòng này?',
       onOk: () => {
         setCompanies(companies.filter(company => company.id !== id));
-        setAlertMessage('Xóa công ty thành công');
+        setAlertMessage('Xóa văn phòng thành công');
         setAlertType('success');
         setOpenAlert(true);
       },
@@ -85,14 +85,14 @@ const CompanyManagement = () => {
           prev.map(company => (company.id === editingId ? { ...company, ...values, id: editingId } : company))
         );
         newCompany = { ...values, id: editingId };
-        setAlertMessage('Cập nhật công ty thành công');
+        setAlertMessage('Cập nhật văn phòng thành công');
         setAlertType('success');
         setOpenAlert(true);
       } else {
         const newId = companies.length > 0 ? Math.max(...companies.map(c => c.id)) + 1 : 1;
         newCompany = { ...values, id: newId };
         setCompanies(prev => [...prev, newCompany]);
-        setAlertMessage('Thêm công ty thành công');
+        setAlertMessage('Thêm văn phòng thành công');
         setAlertType('success');
         setOpenAlert(true);
       }
@@ -100,7 +100,7 @@ const CompanyManagement = () => {
       clearDraft();
       setIsModalVisible(false);
     } catch (error) {
-      setAlertMessage('Lưu công ty thất bại');
+      setAlertMessage('Lưu văn phòng thất bại');
       setAlertType('error');
       setOpenAlert(true);
     }
@@ -108,9 +108,14 @@ const CompanyManagement = () => {
 
   const columns = [
     {
-      title: 'Tên công ty',
+      title: 'Tên văn phòng',
       dataIndex: 'name',
       key: 'name',
+    },
+    {
+      title: 'Địa chỉ',
+      dataIndex: 'address',
+      key: 'address',
     },
     {
       title: 'Mô tả',
@@ -166,7 +171,7 @@ const CompanyManagement = () => {
           columns={columns}
           dataSource={companies}
           rowKey="id"
-          pagination={{ pageSize: 10 }}
+          pagination={{ pageSize: 10, position: ['bottomCenter'] }}
           locale={{
             emptyText: (
               <div style={{ textAlign: 'center', color: '#bfbfbf', padding: 40 }}>

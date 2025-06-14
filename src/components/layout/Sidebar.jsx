@@ -141,7 +141,7 @@ const Sidebar = ({ open, setOpen }) => {
           </ListItemIcon>
           {open && <ListItemText primary="Quản lý văn phòng" />}
         </ListItem>
-        {/*=================== Quản lý loại hình việc làm ===================*/}
+        {/*=================== Quản lý loại công việc ===================*/}
         <ListItem
           button
           onClick={() => navigate('/admin/job-types')}
@@ -170,7 +170,7 @@ const Sidebar = ({ open, setOpen }) => {
           >
             <PeopleIcon />
           </ListItemIcon>
-          {open && <ListItemText primary="Quản lý loại hình việc làm" />}
+          {open && <ListItemText primary="Quản lý loại công việc" />}
         </ListItem>
         {/*=================== Lịch làm việc (chỉ Admin) ===================*/}
         <ListItem
@@ -201,7 +201,7 @@ const Sidebar = ({ open, setOpen }) => {
           >
             <DashboardIcon />
           </ListItemIcon>
-          {open && <ListItemText primary="Lịch làm việc" />}
+          {open && <ListItemText primary="Quản lý lịch làm việc" />}
         </ListItem>
       </List>
     </Drawer>

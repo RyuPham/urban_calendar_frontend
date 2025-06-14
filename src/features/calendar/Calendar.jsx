@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { Select, MenuItem, FormControl, InputLabel, Tooltip, IconButton, Menu as MuiMenu } from '@mui/material';
 import AlertPopup from '../../components/common/AlertPopup';
 import Draggable from 'react-draggable';
@@ -98,12 +98,9 @@ export default function Calendar() {
   const [editEndHour, setEditEndHour] = useState('');
   const [openAlert, setOpenAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
-<<<<<<< HEAD
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuEvent, setMenuEvent] = useState(null);
   const [editMode, setEditMode] = useState(false);
-=======
->>>>>>> 7148391c86752617ccb3c22e82d2f5a182559d7b
   const [tableReady, setTableReady] = useState(false);
 
   // Lấy user hiện tại
@@ -165,10 +162,21 @@ export default function Calendar() {
     });
   };
 
+  const todayDate = new Date();
+  todayDate.setHours(0, 0, 0, 0);
+
   const handleMouseDown = (e, hourIndex, dayIndex) => {
     const dateStr = weekDates[dayIndex];
     const hour = hours[hourIndex].replace('h', '');
     const event = getEventForCell(dateStr, hour);
+    // Chặn đăng ký lịch cho ngày đã qua
+    const cellDate = new Date(dateStr);
+    cellDate.setHours(0, 0, 0, 0);
+    if (cellDate < todayDate) {
+      setAlertMessage('không thể đăng ký trong ngày đã qua!');
+      setOpenAlert(true);
+      return;
+    }
     // Nếu đã có event trong ngày này và không phải click vào event thì không cho đăng ký thêm
     if (!event && hasEventInDay(dateStr)) {
       setAlertMessage('Bạn chỉ được đăng ký 1 công việc trong ngày. Muốn chỉnh sửa, hãy xóa lịch cũ trước!');
@@ -247,7 +255,8 @@ export default function Calendar() {
         start,
         end,
         description,
-        jobType
+        jobType,
+        location: formData.get('location') || '',
       };
       const updatedEvents = events.map(ev =>
         ev.id === selectedEvent.id ? updatedEvent : ev
@@ -256,8 +265,31 @@ export default function Calendar() {
       localStorage.setItem(calendarKey, JSON.stringify(updatedEvents));
     } else {
       // Thêm lịch mới
-      start = formData.get('start');
-      end = formData.get('end');
+      // Kiểm tra an toàn
+      if (!startCell || !weekDates || typeof startCell.dayIndex !== 'number' || !weekDates[startCell.dayIndex]) {
+        setAlertMessage('Không xác định được ngày đăng ký. Vui lòng chọn lại trên lịch!');
+        setOpenAlert(true);
+        return;
+      }
+      let date = new Date(weekDates[startCell.dayIndex]);
+      const startHourStr = formData.get('start');
+      const endHourStr = formData.get('end');
+      const [sh] = startHourStr.split(':');
+      const [eh] = endHourStr.split(':');
+      const startDate = new Date(date);
+      const endDate = new Date(date); // Luôn cùng ngày
+      startDate.setHours(Number(sh), 0, 0, 0);
+      // Nếu giờ kết thúc là 21:00 thì endDate là 22:00 cùng ngày
+      if (Number(eh) === 21) {
+        endDate.setHours(22, 0, 0, 0);
+      } else if (Number(eh) <= Number(sh)) {
+        // Nếu chọn cùng 1 ô hoặc giờ kết thúc <= giờ bắt đầu, end = start + 1h
+        endDate.setHours(startDate.getHours() + 14, 0, 0, 0);
+      } else {
+        endDate.setHours(Number(eh), 0, 0, 0);
+      }
+      start = startDate.toISOString();
+      end = endDate.toISOString();
       const newEvent = {
         id: Date.now(),
         userId: String(currentUser?.id),
@@ -265,6 +297,7 @@ export default function Calendar() {
         start,
         end,
         description,
+        location: formData.get('location') || '',
       };
       const updatedEvents = [...events, newEvent];
       setEvents(updatedEvents);
@@ -302,12 +335,13 @@ export default function Calendar() {
     const startDay = Math.min(startCell.dayIndex, endCell.dayIndex);
     const endDay = Math.max(startCell.dayIndex, endCell.dayIndex);
     const startDate = new Date(weekDates[startDay]);
-    const endDate = new Date(weekDates[endDay]);
-    startDate.setHours(parseInt(hours[startHour]) + 7);
-    endDate.setHours(parseInt(hours[endHour]) + 7);// Cộng thêm 1h nếu sài UTC :(
-    // Nếu là ô cuối cùng (21h), cộng thêm 1 giờ cho endDate
+    const endDate = new Date(weekDates[startDay]); // Luôn lấy ngày bắt đầu
+    startDate.setHours(parseInt(hours[startHour]) + 7, 0, 0, 0);
+    // Nếu kéo đến ô cuối cùng (21h), endDate là 22:00 cùng ngày
     if (endHour === hours.length - 1) {
-      endDate.setHours(endDate.getHours() + 1);
+      endDate.setHours(parseInt(hours[endHour]) + 8, 0, 0, 0); // 21+1=22
+    } else {
+      endDate.setHours(parseInt(hours[endHour]) + 7 + 1, 0, 0, 0); // Giờ tiếp theo
     }
     return {
       start: startDate.toISOString().slice(0, 16),
@@ -363,17 +397,6 @@ export default function Calendar() {
 
   const tableRef = useRef(null);
   const dayRefs = useRef([]);
-  const [cellW, setCellW] = useState(100);
-
-  useEffect(() => {
-    if (tableRef.current) {
-      const cols = tableRef.current.querySelectorAll('thead th');
-      if (cols.length > 1) {
-        setCellW(cols[1].offsetWidth);
-        setTableReady(true);
-      }
-    }
-  }, [month, year, hours, weekdays]);
 
   const table = tableRef.current;
   let cellH = 40; // Giá trị mặc định
@@ -403,15 +426,30 @@ export default function Calendar() {
     handleMenuClose();
   };
 
-  // Tạo mảng giờ cho select
-  const hourOptions = Array.from({ length: 22 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
+  // Tạo mảng giờ cho select chỉ từ 07:00 đến 21:00
+  const hourOptions = Array.from({ length: 15 }, (_, i) => `${(i + 7).toString().padStart(2, '0')}:00`);
 
-  useEffect(() => {
-    // Khi table và dayRefs đã render xong
+  // Tính toán danh sách giờ kết thúc hợp lệ
+  let endHourOptions = hourOptions;
+  if (startCell && endCell) {
+    const startHour = Math.min(startCell.hourIndex, endCell.hourIndex);
+    const endHour = Math.max(startCell.hourIndex, endCell.hourIndex);
+    if (endHour === 14) {
+      // Nếu kéo đến ô cuối cùng (21:00), chỉ cho phép chọn 21:00
+      endHourOptions = ['21:00'];
+    } else {
+      // Chỉ cho phép chọn từ giờ bắt đầu + 1 đến 21:00
+      endHourOptions = hourOptions.slice(startHour + 1);
+    }
+  }
+
+  useLayoutEffect(() => {
     if (dayRefs.current.every(ref => ref && ref.offsetLeft !== undefined)) {
       setTableReady(true);
+    } else {
+      setTableReady(false);
     }
-  }, [weekDates]);
+  }, [weekDates, events]);
 
   return (
     <div style={{
@@ -540,8 +578,30 @@ export default function Calendar() {
         padding: '16px 0'
       }}>
         {/* Toolbar */}
-        <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 10, justifyContent: 'space-between' }}>
           <span style={{ fontWeight: "bold", fontSize: 20 }}>Tháng {month + 1} </span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => setSelectedDate(prev => {
+                const d = new Date(prev);
+                d.setDate(d.getDate() - 7);
+                return d;
+              })}
+              style={{ minWidth: 100, height: 36, border: "1px solid #888", background: "#f4f4f4", color: "#222", borderRadius: 8, fontSize: 16, fontWeight: 600, cursor: "pointer", transition: "background 0.2s" }}
+            >
+              Tuần trước
+            </button>
+            <button
+              onClick={() => setSelectedDate(prev => {
+                const d = new Date(prev);
+                d.setDate(d.getDate() + 7);
+                return d;
+              })}
+              style={{ minWidth: 100, height: 36, border: "1px solid #888", background: "#f4f4f4", color: "#222", borderRadius: 8, fontSize: 16, fontWeight: 600, cursor: "pointer", transition: "background 0.2s" }}
+            >
+              Tuần sau
+            </button>
+          </div>
         </div>
         {/* Lịch tuần */}
         <div style={{ position: 'relative', width: '100%', height: (hours.length + 1) * cellH }}>
@@ -560,11 +620,7 @@ export default function Calendar() {
           >
             <thead>
               <tr>
-<<<<<<< HEAD
-                <th style={{ width: `${100 / (weekdays.length + 1)}%`, minWidth: 80, maxWidth: 120, height: 48, background: "#f4f4f4", textAlign: 'center', fontWeight: 700, fontSize: 16, border: '1px solid #ccc', boxSizing: 'border-box' }}></th>
-=======
-                <th style={{ width: cellW, background: "#f4f4f4" }}></th>
->>>>>>> 7148391c86752617ccb3c22e82d2f5a182559d7b
+                <th style={{ width: `${100 / (weekdays.length + 1)}%`, minWidth: 80, maxWidth: 120, height: 48, background: "#f4f4f4", textAlign: 'center', fontWeight: 700, fontSize: 16, border: '1px solid #ccc', boxSizing: 'border-box', color: '#fff', background: '#1874CD' }}></th>
                 {weekdays.map((thu, i) => {
                   const dateObj = new Date(weekDates[i]);
                   return (
@@ -576,16 +632,17 @@ export default function Calendar() {
                         minWidth: 80,
                         maxWidth: 120,
                         height: 54,
-                        background: "#f4f4f4",
+                        background: "#1874CD",
                         textAlign: "center",
                         fontWeight: 700,
                         fontSize: 16,
                         border: '1px solid #ccc',
-                        boxSizing: 'border-box'
+                        boxSizing: 'border-box',
+                        color: '#fff'
                       }}
                     >
-                      <div style={{ fontWeight: "bold" }}>{thu}</div>
-                      <div style={{ fontSize: 13, color: "#888" }}>
+                      <div style={{ fontWeight: "bold", color: '#fff' }}>{thu}</div>
+                      <div style={{ fontSize: 13, color: "#fff" }}>
                         {dateObj.getDate().toString().padStart(2, "0")}/{(dateObj.getMonth() + 1).toString().padStart(2, "0")}
                       </div>
                     </th>
@@ -596,11 +653,7 @@ export default function Calendar() {
             <tbody style={{ height: "100%" }}>
               {hours.map((hour, hourIndex) => (
                 <tr key={hourIndex}>
-<<<<<<< HEAD
-                  <td style={{ width: `${100 / (weekdays.length + 1)}%`, minWidth: 80, maxWidth: 120, height: 40, background: "#f4f4f4", fontWeight: "bold", textAlign: 'center', fontSize: 15, padding: 0, border: '1px solid #ccc', boxSizing: 'border-box' }}>{hour}</td>
-=======
-                  <td style={{ border: "1px solid #ccc", background: "#f4f4f4", fontWeight: "bold", height: 40, padding: 0, width: cellW }}>{hour}</td>
->>>>>>> 7148391c86752617ccb3c22e82d2f5a182559d7b
+                  <td style={{ width: `${100 / (weekdays.length + 1)}%`, minWidth: 80, maxWidth: 120, height: 40, background: "#1874CD", fontWeight: "bold", textAlign: 'center', fontSize: 15, padding: 0, border: '1px solid #ccc', boxSizing: 'border-box', color: '#fff' }}>{hour}</td>
                   {weekdays.map((thu, dayIndex) => (
                     <td
                       key={dayIndex}
@@ -629,16 +682,15 @@ export default function Calendar() {
             </tbody>
           </table>
           {/* Overlay event blocks */}
-<<<<<<< HEAD
-          {tableReady && filteredEvents.map((event, idx) => {
-=======
-          {tableReady && cellW > 80 && filteredEvents.map((event, idx) => {
->>>>>>> 7148391c86752617ccb3c22e82d2f5a182559d7b
+          {tableReady && filteredEvents.filter(event => {
+            // Kiểm tra tính hợp lệ của start/end
+            const start = new Date(event.start);
+            const end = new Date(event.end);
+            return !isNaN(start.getTime()) && !isNaN(end.getTime());
+          }).map((event, idx) => {
             // Tính toán vị trí block
             const start = new Date(event.start);
             const end = new Date(event.end);
-            // Debug log
-            console.log('event.start:', event.start, 'start.getHours():', start.getHours(), 'startHourIdx:', hours.findIndex(h => parseInt(h) === start.getHours()), 'hours:', hours);
             // Tìm cột (ngày) bắt đầu/kết thúc
             const startDayIdx = weekDates.findIndex(d => d === start.toISOString().slice(0, 10));
             const endDayIdx = weekDates.findIndex(d => d === end.toISOString().slice(0, 10));
@@ -657,14 +709,14 @@ export default function Calendar() {
               if (rows.length > 0) cellH = rows[0].offsetHeight;
             }
             // Tính toán style (cột 0 là giờ, nên phải +1)
-            const left = cellW * (startDayIdx + 1);
-            const width = cellW;
-            const top = startHourIdx * cellH;
+            const left = dayRefs.current[startDayIdx]?.offsetLeft || 0;
+            const right = (dayRefs.current[endDayIdx]?.offsetLeft || 0) + (dayRefs.current[endDayIdx]?.offsetWidth || 0);
+            const width = right - left;
+            const top = (startHourIdx + 1) * cellH;
             const height = (endHourIdx - startHourIdx + 1) * cellH;
 
             // Hàm xử lý khi thả block
             const handleStop = (e, data) => {
-<<<<<<< HEAD
               // Tính toán lại vị trí mới
               const newDayIdx = Math.max(0, Math.min(weekdays.length - 1, Math.round(data.x / cellW) - 1));
               const newHourIdx = Math.max(0, Math.min(hours.length - 1, Math.round(data.y / cellH) - 1));
@@ -691,18 +743,6 @@ export default function Calendar() {
                 setOpenAlert(true);
                 return;
               }
-=======
-              // Tính toán lại vị trí mới (chỉ đổi ngày, giữ nguyên giờ)
-              const newDayIdx = Math.round(data.x / cellW) - 1; // -1 vì cột 0 là giờ
-              if (newDayIdx < 0 || newDayIdx > weekdays.length - 1) return;
-              // Giữ nguyên giờ bắt đầu/kết thúc
-              const oldStart = new Date(event.start);
-              const oldEnd = new Date(event.end);
-              const newStart = new Date(weekDates[newDayIdx]);
-              newStart.setHours(oldStart.getHours(), oldStart.getMinutes(), 0, 0);
-              const newEnd = new Date(weekDates[newDayIdx]);
-              newEnd.setHours(oldEnd.getHours(), oldEnd.getMinutes(), 0, 0);
->>>>>>> 7148391c86752617ccb3c22e82d2f5a182559d7b
               // Cập nhật event
               const updatedEvent = { ...event, start: newStart.toISOString(), end: newEnd.toISOString() };
               const updatedEvents = filteredEvents.map(ev => ev.id === event.id ? updatedEvent : ev);
@@ -710,12 +750,10 @@ export default function Calendar() {
               localStorage.setItem(calendarKey, JSON.stringify(updatedEvents));
             };
 
-            const numDays = weekdays.length;
-
             return (
               <Draggable
                 key={event.id}
-                axis="x"
+                axis="both"
                 grid={[cellW, cellH]}
                 bounds={{
                   left: dayRefs.current[0]?.offsetLeft || 0,
@@ -723,14 +761,8 @@ export default function Calendar() {
                   right: (dayRefs.current[weekdays.length - 1]?.offsetLeft || 0) + (dayRefs.current[weekdays.length - 1]?.offsetWidth || 0) - width,
                   bottom: (hours.length) * cellH - height + cellH
                 }}
-<<<<<<< HEAD
                 position={{ x: left, y: top }}
                 onStop={handleStop}
-=======
-                position={null}
-                onStop={handleStop}
-                bounds={{ left: cellW, right: cellW * numDays }}
->>>>>>> 7148391c86752617ccb3c22e82d2f5a182559d7b
               >
                 <div
                   style={{
@@ -773,7 +805,9 @@ export default function Calendar() {
                     {' - '}
                     {`${new Date(event.end).getHours().toString().padStart(2, '0')}:${new Date(event.end).getMinutes().toString().padStart(2, '0')}`}
                   </div>
-                  {event.description && <div style={{ fontWeight: 400, fontSize: 13 }}>{event.description}</div>}
+                  {event.location && (
+                    <div style={{ fontWeight: 400, fontSize: 13, fontStyle: 'italic' }}>{event.location}</div>
+                  )}
                 </div>
               </Draggable>
             );
@@ -839,7 +873,8 @@ export default function Calendar() {
                     start: oldStart.toISOString(),
                     end: oldEnd.toISOString(),
                     description: formData.get('description'),
-                    jobType: formData.get('jobType')
+                    jobType: formData.get('jobType'),
+                    location: formData.get('location') || '',
                   };
                   const updatedEvents = events.map(ev => ev.id === selectedEvent.id ? updatedEvent : ev);
                   setEvents(updatedEvents);
@@ -867,8 +902,16 @@ export default function Calendar() {
                       style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: 16 }}
                       required
                     >
-                      {hourOptions.map(h => <option key={h} value={h}>{h}</option>)}
+                      {endHourOptions.map(h => <option key={h} value={h}>{h}</option>)}
                     </select>
+                  </div>
+                  <div style={{ marginBottom: '15px' }}>
+                    <label style={{ display: 'block', marginBottom: '5px' }}>Địa điểm</label>
+                    <textarea
+                      name="location"
+                      defaultValue={selectedEvent.location || ''}
+                      style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', minHeight: '40px' }}
+                    />
                   </div>
                   <div style={{ marginBottom: '15px' }}>
                     <label style={{ display: 'block', marginBottom: '5px' }}>Mô tả</label>
@@ -924,6 +967,14 @@ export default function Calendar() {
                       />
                     </div>
                     <div style={{ marginBottom: '15px' }}>
+                      <label style={{ display: 'block', marginBottom: '5px' }}>Địa điểm</label>
+                      <textarea
+                        value={selectedEvent.location || ''}
+                        readOnly
+                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', minHeight: '40px', background: '#f5f5f5' }}
+                      />
+                    </div>
+                    <div style={{ marginBottom: '15px' }}>
                       <label style={{ display: 'block', marginBottom: '5px' }}>Mô tả</label>
                       <textarea
                         value={selectedEvent.description || ''}
@@ -960,22 +1011,31 @@ export default function Calendar() {
               <form onSubmit={handleUpdateEvent}>
                 <div style={{ marginBottom: '15px' }}>
                   <label style={{ display: 'block', marginBottom: '5px' }}>Thời gian bắt đầu</label>
-                  <input
+                  <select
                     name="start"
-                    type="datetime-local"
-                    defaultValue={getSelectedTimeRange().start}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+                    defaultValue={getSelectedTimeRange().start ? new Date(getSelectedTimeRange().start).getHours().toString().padStart(2, '0') + ':00' : '07:00'}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: 16 }}
                     required
-                  />
+                  >
+                    {hourOptions.map(h => <option key={h} value={h}>{h}</option>)}
+                  </select>
                 </div>
                 <div style={{ marginBottom: '15px' }}>
                   <label style={{ display: 'block', marginBottom: '5px' }}>Thời gian kết thúc</label>
-                  <input
+                  <select
                     name="end"
-                    type="datetime-local"
-                    defaultValue={getSelectedTimeRange().end}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+                    defaultValue={getSelectedTimeRange().end ? new Date(getSelectedTimeRange().end).getHours().toString().padStart(2, '0') + ':00' : '08:00'}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: 16 }}
                     required
+                  >
+                    {endHourOptions.map(h => <option key={h} value={h}>{h}</option>)}
+                  </select>
+                </div>
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px' }}>Địa điểm</label>
+                  <textarea
+                    name="location"
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', minHeight: '40px' }}
                   />
                 </div>
                 <div style={{ marginBottom: '15px' }}>

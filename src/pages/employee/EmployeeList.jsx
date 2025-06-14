@@ -393,7 +393,28 @@ const EmployeeTable = () => {
 
   // Hàm lưu chỉnh sửa
   const handleSaveEdit = () => {
-    if (!editEmployee.name || !editEmployee.username || !editEmployee.email || !editEmployee.phone || !editEmployee.gender || !editEmployee.address || !editEmployee.position || !editEmployee.office) {
+    // Validate họ tên không chứa ký tự đặc biệt
+    const nameRegex = /^[a-zA-ZÀ-ỹ\s]+$/;
+    if (!editEmployee.name || !nameRegex.test(editEmployee.name)) {
+      setAlertMessage('Họ tên không được chứa ký tự đặc biệt và không được để trống!');
+      setOpenAlert(true);
+      return;
+    }
+    // Validate email đúng định dạng và phải có đuôi @gmail.com
+    const emailRegex = /^[\w-.]+@gmail\.com$/;
+    if (!editEmployee.email || !emailRegex.test(editEmployee.email)) {
+      setAlertMessage('Email phải đúng định dạng');
+      setOpenAlert(true);
+      return;
+    }
+    // Validate số điện thoại không quá 15 số
+    const phoneRegex = /^\d{1,15}$/;
+    if (!editEmployee.phone || !phoneRegex.test(editEmployee.phone)) {
+      setAlertMessage('Số điện thoại không được vượt quá 15 số!');
+      setOpenAlert(true);
+      return;
+    }
+    if (!editEmployee.username || !editEmployee.gender || !editEmployee.address || !editEmployee.position || !editEmployee.office) {
       setAlertMessage('Vui lòng nhập đầy đủ thông tin!');
       setOpenAlert(true);
       return;

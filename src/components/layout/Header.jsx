@@ -84,8 +84,7 @@ const Header = ({ onMenuClick }) => {
             <>
               <span
                 className="urban-header__nav-item"
-                style={{ cursor: "pointer", fontWeight: 600, color: '#1976d2', marginRight: 8 }}
-                onClick={() => setOpenProfileModal(true)}
+                style={{ fontWeight: 600, color: '#1976d2', marginRight: 8, cursor: 'default' }}
               >
                 {user?.name || user?.username || 'Người dùng'}
               </span>

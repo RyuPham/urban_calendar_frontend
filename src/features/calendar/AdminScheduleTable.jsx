@@ -163,11 +163,12 @@ const AdminScheduleTable = () => {
                         const timeStr = `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')} - ${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
                         return (
                           <Tooltip key={i} title={<>
-                            <div><b>Loại công việc:</b> {ev.jobType}</div>
+                            <div><b></b> {ev.jobType}</div>
                             {ev.description && <div><b>Mô tả:</b> {ev.description}</div>}
+                            {ev.location && <div><b>Địa điểm:</b> {ev.location}</div>}
                           </>} arrow placement="top">
                             <Box sx={{
-                              background: getJobTypeColor(ev.jobType),
+                              background: getJobTypeColor(ev.jobType),//màu loại công việc
                               color: '#fff',
                               borderRadius: 1.5,
                               m: 0.5,

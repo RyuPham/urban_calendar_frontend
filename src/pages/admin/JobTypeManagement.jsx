@@ -153,13 +153,13 @@ const JobTypeManagement = () => {
         justifyContent: 'space-between',
         alignItems: 'center',
       }}>
-        <h2 style={{ margin: 0 }}>Quản lý loại hình việc làm</h2>
+        <h2 style={{ margin: 0 }}>Quản lý loại công việc</h2>
         <Button
           type="primary"
           icon={<PlusOutlined />}
           onClick={handleAdd}
         >
-          Thêm loại hình
+          Thêm công việc
         </Button>
       </div>
       <div style={{ padding: 24 }}>
@@ -167,7 +167,7 @@ const JobTypeManagement = () => {
           columns={columns}
           dataSource={jobTypes}
           rowKey="id"
-          pagination={{ pageSize: 10 }}
+          pagination={{ position: ['bottomCenter'] }}
           locale={{
             emptyText: (
               <div style={{ textAlign: 'center', color: '#bfbfbf', padding: 40 }}>
@@ -181,7 +181,7 @@ const JobTypeManagement = () => {
         />
       </div>
       <Modal
-        title={editingId ? 'Sửa loại hình' : 'Thêm loại hình'}
+        title={editingId ? 'Sửa công việc' : 'Thêm công việc'}
         open={isModalVisible}
         onOk={handleSubmit}
         onCancel={() => { setIsModalVisible(false); clearDraft(); }}
@@ -189,10 +189,10 @@ const JobTypeManagement = () => {
         <Form form={form} layout="vertical" onValuesChange={handleFormChange}>
           <Form.Item
             name="name"
-            label="Tên loại hình"
-            rules={[{ required: true, message: 'Vui lòng nhập tên loại hình!' }]}
+            label="Tên công việc"
+            rules={[{ required: true, message: 'Vui lòng nhập tên công việc!' }]}
           >
-            <Input placeholder="Nhập tên loại hình" />
+            <Input placeholder="Nhập tên công việc" />
           </Form.Item>
           <Form.Item
             name="description"
