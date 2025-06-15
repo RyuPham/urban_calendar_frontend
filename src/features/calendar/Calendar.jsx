@@ -5,7 +5,7 @@ import Draggable from 'react-draggable';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 const weekdays = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
-const hours = ["7h", "8h", "9h", "10h", "11h", "12h", "13h", "14h", "15h", "16h", "17h", "18h", "19h", "20h", "21h"];
+const hours = Array.from({ length: 22 }, (_, i) => `${i}h`);
 
 // Hàm tạo ma trận lịch tháng
 function getCalendarMatrix(month, year) {
@@ -77,6 +77,9 @@ function getJobTypeColor(name) {
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
   return `hsl(${hash % 360}, 60%, 60%)`;
 }
+
+// Hàm lấy yyyy-mm-dd local
+const getLocalDateString = (date) => `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
 
 export default function Calendar() {
   const today = new Date();
@@ -271,23 +274,17 @@ export default function Calendar() {
         setOpenAlert(true);
         return;
       }
-      let date = new Date(weekDates[startCell.dayIndex]);
-      const startHourStr = formData.get('start');
-      const endHourStr = formData.get('end');
-      const [sh] = startHourStr.split(':');
-      const [eh] = endHourStr.split(':');
-      const startDate = new Date(date);
-      const endDate = new Date(date); // Luôn cùng ngày
-      startDate.setHours(Number(sh), 0, 0, 0);
-      // Nếu giờ kết thúc là 21:00 thì endDate là 22:00 cùng ngày
-      if (Number(eh) === 21) {
-        endDate.setHours(22, 0, 0, 0);
-      } else if (Number(eh) <= Number(sh)) {
-        // Nếu chọn cùng 1 ô hoặc giờ kết thúc <= giờ bắt đầu, end = start + 1h
-        endDate.setHours(startDate.getHours() + 14, 0, 0, 0);
-      } else {
-        endDate.setHours(Number(eh), 0, 0, 0);
-      }
+      let dayIdx = startCell && endCell ? Math.min(startCell.dayIndex, endCell.dayIndex) : 0;
+      let date = new Date(weekDates[dayIdx]);
+      // Đảm bảo ngày local, không bị lệch UTC
+      const startDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const endDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      let startHourIndex = getHourIndexFromDropdown(formData.get('start'));
+      let endHourIndex = getHourIndexFromDropdown(formData.get('end'));
+      let startHourValue = startHourIndex;
+      let endHourValue = endHourIndex;
+      startDate.setHours(startHourValue, 0, 0, 0);
+      endDate.setHours(endHourValue, 0, 0, 0);
       start = startDate.toISOString();
       end = endDate.toISOString();
       const newEvent = {
@@ -426,22 +423,19 @@ export default function Calendar() {
     handleMenuClose();
   };
 
-  // Tạo mảng giờ cho select chỉ từ 07:00 đến 21:00
-  const hourOptions = Array.from({ length: 15 }, (_, i) => `${(i + 7).toString().padStart(2, '0')}:00`);
+  // Mảng hourOptions từ 00:00 đến 21:00
+  const hourOptions = Array.from({ length: 22 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
 
   // Tính toán danh sách giờ kết thúc hợp lệ
   let endHourOptions = hourOptions;
   if (startCell && endCell) {
     const startHour = Math.min(startCell.hourIndex, endCell.hourIndex);
     const endHour = Math.max(startCell.hourIndex, endCell.hourIndex);
-    if (endHour === 14) {
-      // Nếu kéo đến ô cuối cùng (21:00), chỉ cho phép chọn 21:00
-      endHourOptions = ['21:00'];
-    } else {
-      // Chỉ cho phép chọn từ giờ bắt đầu + 1 đến 21:00
-      endHourOptions = hourOptions.slice(startHour + 1);
-    }
+    endHourOptions = hourOptions.slice(startHour + 1, endHour + 2); // Cho phép chọn nhiều giờ liên tiếp
   }
+
+  // Khi submit form, mapping index từ dropdown sang hours phải đúng
+  const getHourIndexFromDropdown = (val) => hourOptions.findIndex(h => h === val);
 
   useLayoutEffect(() => {
     if (dayRefs.current.every(ref => ref && ref.offsetLeft !== undefined)) {
@@ -661,7 +655,7 @@ export default function Calendar() {
                         width: `${100 / (weekdays.length + 1)}%`,
                         minWidth: 80,
                         maxWidth: 120,
-                        height: 40,
+                        height: 54,
                         padding: 0,
                         border: "1px solid #ccc",
                         background: isCellSelected(hourIndex, dayIndex) ? "#e3f2fd" : hasEventInDay(weekDates[dayIndex]) ? "#f5f5f5" : "#fff",
@@ -692,8 +686,14 @@ export default function Calendar() {
             const start = new Date(event.start);
             const end = new Date(event.end);
             // Tìm cột (ngày) bắt đầu/kết thúc
-            const startDayIdx = weekDates.findIndex(d => d === start.toISOString().slice(0, 10));
-            const endDayIdx = weekDates.findIndex(d => d === end.toISOString().slice(0, 10));
+            const startDayIdx = weekDates.findIndex(d => {
+              const dObj = typeof d === 'string' ? new Date(d) : d;
+              return dObj.getFullYear() === start.getFullYear() && dObj.getMonth() === start.getMonth() && dObj.getDate() === start.getDate();
+            });
+            const endDayIdx = weekDates.findIndex(d => {
+              const dObj = typeof d === 'string' ? new Date(d) : d;
+              return dObj.getFullYear() === end.getFullYear() && dObj.getMonth() === end.getMonth() && dObj.getDate() === end.getDate();
+            });
             if (startDayIdx === -1 || endDayIdx === -1) return null;
             // Tìm hàng (giờ) bắt đầu/kết thúc
             const startHourIdx = hours.findIndex(h => parseInt(h) === start.getHours());
