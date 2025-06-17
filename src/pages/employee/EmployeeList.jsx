@@ -482,12 +482,11 @@ const EmployeeTable = () => {
       </Box>
       {/* Table Header */}
       <Box sx={{ width: '100%' }}>
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)' }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>
           <Box sx={{ background: '#BEBEBE', color: '#000000', p: 1, textAlign: 'center', borderBottom: '2px solid #fff', fontWeight: 'bold' }}>STT</Box>
           <Box sx={{ background: '#BEBEBE', color: '#000000', p: 1, textAlign: 'center', borderBottom: '2px solid #fff', fontWeight: 'bold' }}>Tên</Box>
           <Box sx={{ background: '#BEBEBE', color: '#000000', p: 1, textAlign: 'center', borderBottom: '2px solid #fff', fontWeight: 'bold' }}>Chức vụ</Box>
           <Box sx={{ background: '#BEBEBE', color: '#000000', p: 1, textAlign: 'center', borderBottom: '2px solid #fff', fontWeight: 'bold' }}>Địa điểm</Box>
-          <Box sx={{ background: '#BEBEBE', color: '#000000', p: 1, textAlign: 'center', borderBottom: '2px solid #fff', fontWeight: 'bold' }}>Trạng thái</Box>
         </Box>
         {/* Table Body */}
         {paginated.map((emp, idx) => (
@@ -495,7 +494,7 @@ const EmployeeTable = () => {
             key={emp.id}
             sx={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(5, 1fr)',
+              gridTemplateColumns: 'repeat(4, 1fr)',
               position: 'relative',
               cursor: 'pointer',
               transition: 'background 0.2s',
@@ -509,7 +508,6 @@ const EmployeeTable = () => {
             <Box sx={{ background: '#EED5D2', color: '#000000', p: 1, textAlign: 'center', borderBottom: '1px solid #fff' }}>{emp.name}</Box>
             <Box sx={{ background: '#EED5D2', color: '#000000', p: 1, textAlign: 'center', borderBottom: '1px solid #fff' }}>{emp.position}</Box>
             <Box sx={{ background: '#EED5D2', color: '#000000', p: 1, textAlign: 'center', borderBottom: '1px solid #fff' }}>{emp.office}</Box>
-            <Box sx={{ background: '#EED5D2', color: '#000000', p: 1, textAlign: 'center', borderBottom: '1px solid #fff' }}>{emp.status}</Box>
           </Box>
         ))}
       </Box>

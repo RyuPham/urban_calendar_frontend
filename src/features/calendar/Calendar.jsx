@@ -105,6 +105,7 @@ export default function Calendar() {
   const [menuEvent, setMenuEvent] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [tableReady, setTableReady] = useState(false);
+  const [offices, setOffices] = useState([]);
 
   // Lấy user hiện tại
   const currentUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -133,6 +134,25 @@ export default function Calendar() {
       setEditEndHour(selectedEvent.end.slice(11, 16));
     }
   }, [selectedEvent]);
+
+  useEffect(() => {
+    // Lấy danh sách văn phòng từ localStorage
+    const officeData = localStorage.getItem('companies');
+    if (officeData) {
+      try {
+        const parsed = JSON.parse(officeData);
+        if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object') {
+          setOffices(parsed.map(c => c.name));
+        } else {
+          setOffices(parsed);
+        }
+      } catch {
+        setOffices([]);
+      }
+    } else {
+      setOffices([]);
+    }
+  }, []);
 
   // Hàm chuyển tháng
   const prevMonth = () => {
@@ -789,7 +809,6 @@ export default function Calendar() {
                     overflow: 'hidden',
                     minHeight: 36
                   }}
-                  title={`${event.jobType}\n${event.start.replace('T', ' ')} - ${event.end.replace('T', ' ')}\n${event.description || ''}`}
                 >
                   {/* Dấu 3 chấm menu */}
                   <IconButton
@@ -874,7 +893,7 @@ export default function Calendar() {
                     end: oldEnd.toISOString(),
                     description: formData.get('description'),
                     jobType: formData.get('jobType'),
-                    location: formData.get('location') || '',
+                    location: formData.get('location'),
                   };
                   const updatedEvents = events.map(ev => ev.id === selectedEvent.id ? updatedEvent : ev);
                   setEvents(updatedEvents);
@@ -907,11 +926,21 @@ export default function Calendar() {
                   </div>
                   <div style={{ marginBottom: '15px' }}>
                     <label style={{ display: 'block', marginBottom: '5px' }}>Địa điểm</label>
-                    <textarea
-                      name="location"
-                      defaultValue={selectedEvent.location || ''}
-                      style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', minHeight: '40px' }}
-                    />
+                    <FormControl fullWidth>
+                      <InputLabel id="office-edit-label">Chọn địa điểm</InputLabel>
+                      <Select
+                        labelId="office-edit-label"
+                        name="location"
+                        defaultValue={selectedEvent.location || ''}
+                        label="Chọn địa điểm"
+                        required
+                      >
+                        <MenuItem value="">-- Chọn địa điểm --</MenuItem>
+                        {offices.map((of, idx) => (
+                          <MenuItem key={idx} value={of}>{of}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
                   </div>
                   <div style={{ marginBottom: '15px' }}>
                     <label style={{ display: 'block', marginBottom: '5px' }}>Mô tả</label>
@@ -968,11 +997,20 @@ export default function Calendar() {
                     </div>
                     <div style={{ marginBottom: '15px' }}>
                       <label style={{ display: 'block', marginBottom: '5px' }}>Địa điểm</label>
-                      <textarea
-                        value={selectedEvent.location || ''}
-                        readOnly
-                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', minHeight: '40px', background: '#f5f5f5' }}
-                      />
+                      <FormControl fullWidth>
+                        <InputLabel id="office-detail-label">Chọn địa điểm</InputLabel>
+                        <Select
+                          labelId="office-detail-label"
+                          value={selectedEvent.location || ''}
+                          label="Chọn địa điểm"
+                          disabled
+                        >
+                          <MenuItem value="">-- Chọn địa điểm --</MenuItem>
+                          {offices.map((of, idx) => (
+                            <MenuItem key={idx} value={of}>{of}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
                     </div>
                     <div style={{ marginBottom: '15px' }}>
                       <label style={{ display: 'block', marginBottom: '5px' }}>Mô tả</label>
@@ -1033,10 +1071,21 @@ export default function Calendar() {
                 </div>
                 <div style={{ marginBottom: '15px' }}>
                   <label style={{ display: 'block', marginBottom: '5px' }}>Địa điểm</label>
-                  <textarea
-                    name="location"
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', minHeight: '40px' }}
-                  />
+                  <FormControl fullWidth>
+                    <InputLabel id="office-create-label">Chọn địa điểm</InputLabel>
+                    <Select
+                      labelId="office-create-label"
+                      name="location"
+                      defaultValue=""
+                      label="Chọn địa điểm"
+                      required
+                    >
+                      <MenuItem value="">-- Chọn địa điểm --</MenuItem>
+                      {offices.map((of, idx) => (
+                        <MenuItem key={idx} value={of}>{of}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
                 </div>
                 <div style={{ marginBottom: '15px' }}>
                   <label style={{ display: 'block', marginBottom: '5px' }}>Mô tả</label>
