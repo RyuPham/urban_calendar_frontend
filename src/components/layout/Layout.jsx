@@ -2,26 +2,16 @@ import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { Box, Container } from '@mui/material';
 import Header from './Header';
-import Sidebar from './Sidebar';
 import Footer from './Footer';
 import { useSelector } from 'react-redux';
 
 const Layout = () => {
-  const [sidebarOpen, setSidebarOpen] = React.useState(true);
   const isAuthenticated = useSelector(state => state.auth.isAuthenticated);
   const user = useSelector(state => state.auth.user);
-  const isAdmin = user && user.role && user.role.toLowerCase() === 'admin';
-
-  React.useEffect(() => {
-    if (!isAdmin && sidebarOpen) setSidebarOpen(false);
-  }, [isAdmin]);
 
   return (
     <>
-      <Header onMenuClick={isAuthenticated ? () => setSidebarOpen(true) : undefined} />
-      {isAuthenticated && isAdmin && (
-        <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} />
-      )}
+      <Header />
       <Box
         sx={{
           marginTop: '52px',

@@ -100,8 +100,17 @@ const AdminScheduleTable = () => {
   );
 
   return (
-    <Box sx={{ width: '100%', p: { xs: 0, md: 2 }, background: '#f7fafd', minHeight: '100vh' }}>
-      <Box sx={{ maxWidth: 1100, mx: 'auto', pt: 3, pb: 1, px: { xs: 1, md: 2 } }}>
+   
+    <Box sx={{
+      width: '100vw',
+      height: 'calc(100vh - 52px)', // nếu header cao 52px
+      background: '#f7fafd',
+      position: 'fixed',
+      top: '52px',
+      left: 0,
+      overflow: 'auto',
+      p: { xs: 0, md: 2 }, }}>
+      <Box sx={{ maxWidth: '100%', mx: 'auto', pt: 3, pb: 1, px: { xs: 1, md: 2 } }}>
         <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#1976d2', textAlign: 'center', letterSpacing: 0.5 }}>
           Lịch làm việc nhân viên (theo tuần)
         </Typography>
@@ -127,7 +136,7 @@ const AdminScheduleTable = () => {
           />
         </Box>
       </Box>
-      <TableContainer component={Paper} sx={{ borderRadius: 4, boxShadow: '0 4px 24px rgba(25, 118, 210, 0.08)', maxWidth: 1100, mx: 'auto', overflowX: 'auto' }}>
+      <TableContainer component={Paper} sx={{ borderRadius: 4, boxShadow: '0 4px 24px rgba(25, 118, 210, 0.08)', maxWidth: '100%', mx: 'auto', overflowX: 'auto' }}>
         <Table sx={{ minWidth: 800 }}>
           <TableHead>
             <TableRow sx={{ background: 'linear-gradient(90deg, #1976d2 60%, #42a5f5 100%)', borderRadius: 2 }}>
@@ -156,7 +165,7 @@ const AdminScheduleTable = () => {
                 {weekDates.map((date, colIdx) => {
                   const userEvents = getUserEventsForDay(events, emp.id, date);
                   return (
-                    <TableCell key={colIdx} align="center" sx={{ background: '#0a2342', p: 0, minHeight: 48, border: '1px solid #e3e3e3', position: 'relative', transition: 'background 0.2s', '&:hover': { background: '#163d6b' } }}>
+                    <TableCell key={colIdx} align="center" sx={{ background: '#fff', p: 0, minHeight: 48, border: '1px solid #e3e3e3', position: 'relative', transition: 'background 0.2s', '&:hover': { background: '#163d6b' } }}>
                       {userEvents.map((ev, i) => {
                         const start = new Date(ev.start);
                         const end = new Date(ev.end);
@@ -194,6 +203,7 @@ const AdminScheduleTable = () => {
         </Table>
       </TableContainer>
     </Box>
+    
   );
 };
 

@@ -13,7 +13,7 @@ import UrCor from './pages/UrCor';
 import RoleManagement from './pages/admin/RoleManagement.jsx';
 import CompanyManagement from './pages/admin/CompanyManagement.jsx';
 import JobTypeManagement from './pages/admin/JobTypeManagement.jsx';
-import Sidebar from './components/layout/Sidebar';
+// import Sidebar from './components/layout/Sidebar';
 import Profile from './pages/employee/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminScheduleTable from './features/calendar/AdminScheduleTable';
@@ -50,7 +50,7 @@ const App = () => {
             <Route path="/about" element={<UrVN />} />
             <Route path="/corporation" element={<UrCor />} />
             <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-            <Route path="/employees" element={
+            <Route path="/admin/employees" element={
               <ProtectedRoute allowRoles={['Admin']}>
                 <EmployeeList />
               </ProtectedRoute>
@@ -80,7 +80,11 @@ const App = () => {
                 <AdminScheduleTable />
               </ProtectedRoute>
             } />
-            <Route path="/calendar" element={<Calendar />} />
+            <Route path="/calendar" element={
+              <ProtectedRoute allowRoles={['User']}>
+                <Calendar />
+              </ProtectedRoute>
+            } />
             <Route path="/profile" element={<Profile />} />
           </Route>
           <Route path="/login" element={<Login />} />

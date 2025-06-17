@@ -438,7 +438,15 @@ const EmployeeTable = () => {
   };
 
   return (
-    <Box sx={{ background: '#fff', minHeight: '100vh' }}>
+    <Box sx={{
+    width: '100vw',
+    height: 'calc(100vh - 52px)', // nếu header cao 52px
+    background: '#f7fafd',
+    position: 'fixed',
+    top: '52px',
+    left: 0,
+    overflow: 'auto',
+    p: { xs: 0, md: 2 }, }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', background: '#283fd6', color: '#fff', p: 1 }}>
         <Typography variant="h6" sx={{ flexGrow: 1 }}>Danh sách nhân viên</Typography>

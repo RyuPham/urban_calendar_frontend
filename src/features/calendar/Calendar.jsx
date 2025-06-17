@@ -5,7 +5,7 @@ import Draggable from 'react-draggable';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 const weekdays = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
-const hours = Array.from({ length: 22 }, (_, i) => `${i}h`);
+const hours = Array.from({ length: 24 }, (_, i) => `${i}h`);
 
 // Hàm tạo ma trận lịch tháng
 function getCalendarMatrix(month, year) {
@@ -356,9 +356,9 @@ export default function Calendar() {
     startDate.setHours(parseInt(hours[startHour]) + 7, 0, 0, 0);
     // Nếu kéo đến ô cuối cùng (21h), endDate là 22:00 cùng ngày
     if (endHour === hours.length - 1) {
-      endDate.setHours(parseInt(hours[endHour]) + 8, 0, 0, 0); // 21+1=22
+      endDate.setHours(parseInt(hours[endHour]) + 7, 0, 0, 0); // 21+1=22
     } else {
-      endDate.setHours(parseInt(hours[endHour]) + 7 + 1, 0, 0, 0); // Giờ tiếp theo
+      endDate.setHours(parseInt(hours[endHour]) + 7 , 0, 0, 0); // Giờ tiếp theo
     }
     return {
       start: startDate.toISOString().slice(0, 16),
@@ -444,7 +444,7 @@ export default function Calendar() {
   };
 
   // Mảng hourOptions từ 00:00 đến 21:00
-  const hourOptions = Array.from({ length: 22 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
+  const hourOptions = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
 
   // Tính toán danh sách giờ kết thúc hợp lệ
   let endHourOptions = hourOptions;
@@ -468,18 +468,26 @@ export default function Calendar() {
   return (
     <div style={{
       width: '100%',
-      minHeight: 'calc(100vh - 52px)',
+      height: 'calc(100vh - 52px)', // 52px là chiều cao của header
       background: '#fff',
       display: 'flex',
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      position: 'fixed',
+      top: '52px',
+      left: 0,
+      right: 0,
+      bottom: 0,
+      overflow: 'hidden'
     }}>
       {/* Cột trái: Lịch tháng */}
       <div style={{
         width: 300,
         minWidth: 220,
+        height: '100%',
         background: '#f4f4f4',
         borderRight: '1px solid #e0e0e0',
         boxSizing: 'border-box',
+        overflowY: 'auto'
       }}>
         <div style={{ background: "#fff", padding: 10, borderRadius: 4, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -582,18 +590,19 @@ export default function Calendar() {
       {/* Cột phải: Lịch tuần */}
       <div style={{
         flex: 1,
+        height: '100%',
         overflow: 'auto',
         background: '#fff',
-        borderRadius: 8,
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        maxWidth: 'auto',
-        minWidth: 'auto',
-        margin: '0 auto',
-        padding: '16px 0'
+        borderRadius: 0,
+        boxShadow: 'none',
+        maxWidth: 'none',
+        minWidth: 0,
+        margin: 0,
+        padding: '16px 24px'
       }}>
         {/* Toolbar */}
         <div style={{ display: "flex", alignItems: "center", marginBottom: 10, justifyContent: 'space-between' }}>
-          <span style={{ fontWeight: "bold", fontSize: 20 }}>Tháng {month + 1} </span>
+          <span style={{ fontWeight: "bold", fontSize: 20 }}></span>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               onClick={() => setSelectedDate(prev => {
