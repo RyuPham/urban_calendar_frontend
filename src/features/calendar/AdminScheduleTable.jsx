@@ -165,7 +165,7 @@ const AdminScheduleTable = () => {
                 {weekDates.map((date, colIdx) => {
                   const userEvents = getUserEventsForDay(events, emp.id, date);
                   return (
-                    <TableCell key={colIdx} align="center" sx={{ background: '#fff', p: 0, minHeight: 48, border: '1px solid #e3e3e3', position: 'relative', transition: 'background 0.2s', '&:hover': { background: '#163d6b' } }}>
+                    <TableCell key={colIdx} align="center" sx={{ background: '#fff', p: 0, minHeight: 48, border: '1px solid #e3e3e3', position: 'relative', transition: 'background 0.2s', '&:hover': { background: '#fff' } }}>
                       {userEvents.map((ev, i) => {
                         const start = new Date(ev.start);
                         const end = new Date(ev.end);
