@@ -1,0 +1,131 @@
+.container {
+  width: 100vw;
+  height: calc(100vh - 52px);
+  background: #f7fafd;
+  position: fixed;
+  top: 52px;
+  left: 0;
+  overflow: auto;
+  padding: 16px;
+}
+.header {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+}
+.headerTitle {
+  flex-grow: 1;
+  margin-bottom: 16px;
+  font-weight: 600;
+  color: #3b19d2;
+  text-align: center;
+  letter-spacing: 0.5px;
+  font-size: 1.25rem;
+}
+.addBtn {
+  position: absolute;
+  right: 10px;
+  top: 20px; /* hoặc vị trí bạn muốn theo chiều dọc */
+  background: #1976d2 !important;
+  color: #fff !important;
+  font-weight: bold !important;
+}
+.filterBar {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 16px;
+  padding-bottom: 0;
+}
+.filterSelect {
+  padding: 8px;
+  min-width: 180px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+.tableHeaderRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: linear-gradient(90deg, #1976d2 60%, #42a5f5 100%);
+  color: #fff;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  font-weight: bold;
+  font-size: 16px;
+  text-align: center;
+  overflow: hidden;
+  margin-bottom: 0;
+}
+.tableHeaderCell {
+  padding: 14px 0 14px 0;
+  text-align: center;
+  font-weight: bold;
+  font-size: 16px;
+  color: #fff;
+  background: transparent;
+}
+.tableHeaderCell:first-child {
+  border-top-left-radius: 16px;
+}
+.tableHeaderCell:last-child {
+  border-top-right-radius: 16px;
+}
+.tableRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.tableRow:hover > div {
+  background: #d1b7b7;
+}
+.tableCell {
+  background: #a8dbe3;
+  color: #000;
+  padding: 8px;
+  text-align: center;
+  border-bottom: 1px solid #fff;
+}
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 16px;
+}
+.pageBtn {
+  margin: 0 4px !important;
+  min-width: 36px !important;
+  background: #fff !important;
+  color: #283fd6 !important;
+  border-color: #283fd6 !important;
+}
+.pageBtnActive {
+  background: #283fd6 !important;
+  color: #fff !important;
+}
+.modalBox {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  padding: 32px;
+  border-radius: 16px;
+  min-width: 350px;
+  max-width: 500px;
+}
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 16px;
+}
+.titleCenter {
+  text-align: center;
+  margin: 24px 0;
+  color: #1976d2;
+  font-weight: 700;
+  font-size: 2rem;
+  width: 100%;
+} 

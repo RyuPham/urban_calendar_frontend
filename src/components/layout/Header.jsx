@@ -35,7 +35,9 @@ const Header = () => {
   return (
     <header className="urban-header">
       <div className="urban-header__logo">
-        <img src={logo} alt="Logo" style={{ height: 40, marginRight: 10 }} />
+        <Link to="/Home">
+          <img src={logo} alt="Logo" style={{ height: 40, marginRight: 10, cursor: 'pointer' }} />
+        </Link>
       </div>
       <nav className="urban-header__nav" style={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
         {menuItems.map((item, idx) => (

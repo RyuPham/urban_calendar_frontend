@@ -55,11 +55,8 @@ const App = () => {
                 <EmployeeList />
               </ProtectedRoute>
             } />
-            {/* <Route path="/admin/employees" element={
-              <ProtectedRoute allowRoles={['Admin']}>
-                <EmployeeManagement />
-              </ProtectedRoute>
-            } /> */}
+
+            
             <Route path="/admin/roles" element={
               <ProtectedRoute allowRoles={['Admin']}>
                 <RoleManagement />
@@ -87,11 +84,11 @@ const App = () => {
             } />
             <Route path="/profile" element={<Profile />} />
           </Route>
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<Login />} />   
 
         </Routes>
       </div>
-    </div>
+    </div>    
   );
 };
 

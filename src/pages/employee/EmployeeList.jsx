@@ -19,6 +19,8 @@ import {
   ArrowForwardIos,
 } from '@mui/icons-material';
 import AlertPopup from '../../components/common/AlertPopup';
+import styles from './EmployeeList.module.css';
+import companies from '../admin/CompanyManagement';
 
 // Mock data nhân viên
 const mockEmployees = [
@@ -244,12 +246,10 @@ const EmployeeTable = () => {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editEmployee, setEditEmployee] = useState(null);
-  const [offices, setOffices] = useState([]);
   const [openAlert, setOpenAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
 
-  // Lấy danh sách chức vụ và địa điểm không trùng lặp
-  const positions = Array.from(new Set(mockEmployees.map(e => e.position)));
+  const offices = companies.map(c => c.name);
 
   const filtered = employees.filter(emp =>
     (positionFilter ? emp.position === positionFilter : true) &&
@@ -277,23 +277,6 @@ const EmployeeTable = () => {
       setEmployees(mockEmployees);
       localStorage.setItem(EMPLOYEE_KEY, JSON.stringify(mockEmployees));
     }
-    // Lấy danh sách văn phòng từ localStorage
-    const officeData = localStorage.getItem('companies');
-    if (officeData) {
-      try {
-        const parsed = JSON.parse(officeData);
-        // Nếu là mảng object thì lấy name, nếu là mảng string thì giữ nguyên
-        if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object') {
-          setOffices(parsed.map(c => c.name));
-        } else {
-          setOffices(parsed);
-        }
-      } catch {
-        setOffices([]);
-      }
-    } else {
-      setOffices([]);
-    }
   }, []);
 
   useEffect(() => {
@@ -316,22 +299,6 @@ const EmployeeTable = () => {
   };
 
   const handleAddEmployee = () => {
-    // Lấy lại danh sách văn phòng mới nhất khi mở form
-    const officeData = localStorage.getItem('companies');
-    if (officeData) {
-      try {
-        const parsed = JSON.parse(officeData);
-        if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object') {
-          setOffices(parsed.map(c => c.name));
-        } else {
-          setOffices(parsed);
-        }
-      } catch {
-        setOffices([]);
-      }
-    } else {
-      setOffices([]);
-    }
     setIsModalOpen(true);
     setNewEmployee({
       name: '',
@@ -438,42 +405,34 @@ const EmployeeTable = () => {
   };
 
   return (
-    <Box sx={{
-    width: '100vw',
-    height: 'calc(100vh - 52px)', // nếu header cao 52px
-    background: '#f7fafd',
-    position: 'fixed',
-    top: '52px',
-    left: 0,
-    overflow: 'auto',
-    p: { xs: 0, md: 2 }, }}>
+    <div className={styles.container}>
       {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', background: '#283fd6', color: '#fff', p: 1 }}>
-        <Typography variant="h6" sx={{ flexGrow: 1 }}>Danh sách nhân viên</Typography>
+      <div className={styles.header}>
+        <h2 className={styles.titleCenter}>Danh sách nhân viên</h2>
         <Button
           variant="contained"
-          sx={{ background: '#1976d2', color: '#fff', fontWeight: 'bold' }}
+          className={styles.addBtn}
           onClick={handleAddEmployee}
         >
           Thêm nhân viên
         </Button>
-      </Box>
+      </div>
       {/* Bộ lọc */}
-      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', p: 2, pb: 0 }}>
+      <div className={styles.filterBar}>
         <select
           value={positionFilter}
           onChange={e => setPositionFilter(e.target.value)}
-          style={{ padding: 8, minWidth: 180, borderRadius: 4, border: '1px solid #ccc' }}
+          className={styles.filterSelect}
         >
           <option value="">-- Lọc chức vụ --</option>
-          {positions.map((pos, idx) => (
+          {Array.from(new Set(mockEmployees.map(e => e.position))).map((pos, idx) => (
             <option key={idx} value={pos}>{pos}</option>
           ))}
         </select>
         <select
           value={officeFilter}
           onChange={e => setOfficeFilter(e.target.value)}
-          style={{ padding: 8, minWidth: 180, borderRadius: 4, border: '1px solid #ccc' }}
+          className={styles.filterSelect}
         >
           <option value="">-- Lọc địa điểm --</option>
           {offices.map((of, idx) => (
@@ -484,59 +443,48 @@ const EmployeeTable = () => {
           placeholder="Tìm kiếm..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          sx={{ minWidth: 220, height: 45, '& .MuiInputBase-root': { height: 40 } }}
           size="small"
+          style={{ minWidth: 220, height: 45 }}
         />
-      </Box>
+      </div>
       {/* Table Header */}
-      <Box sx={{ width: '100%' }}>
-        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>
-          <Box sx={{ background: '#BEBEBE', color: '#000000', p: 1, textAlign: 'center', borderBottom: '2px solid #fff', fontWeight: 'bold' }}>STT</Box>
-          <Box sx={{ background: '#BEBEBE', color: '#000000', p: 1, textAlign: 'center', borderBottom: '2px solid #fff', fontWeight: 'bold' }}>Tên</Box>
-          <Box sx={{ background: '#BEBEBE', color: '#000000', p: 1, textAlign: 'center', borderBottom: '2px solid #fff', fontWeight: 'bold' }}>Chức vụ</Box>
-          <Box sx={{ background: '#BEBEBE', color: '#000000', p: 1, textAlign: 'center', borderBottom: '2px solid #fff', fontWeight: 'bold' }}>Địa điểm</Box>
-        </Box>
-        {/* Table Body */}
-        {paginated.map((emp, idx) => (
-          <Box
-            key={emp.id}
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              position: 'relative',
-              cursor: 'pointer',
-              transition: 'background 0.2s',
-              '&:hover > *': {
-                background: '#d1b7b7',
-              },
-            }}
-            onDoubleClick={() => handleRowDoubleClick(emp)}
-          >
-            <Box sx={{ background: '#EED5D2', color: '#000000', p: 1, textAlign: 'center', borderBottom: '1px solid #fff' }}>{(page - 1) * rowsPerPage + idx + 1}</Box>
-            <Box sx={{ background: '#EED5D2', color: '#000000', p: 1, textAlign: 'center', borderBottom: '1px solid #fff' }}>{emp.name}</Box>
-            <Box sx={{ background: '#EED5D2', color: '#000000', p: 1, textAlign: 'center', borderBottom: '1px solid #fff' }}>{emp.position}</Box>
-            <Box sx={{ background: '#EED5D2', color: '#000000', p: 1, textAlign: 'center', borderBottom: '1px solid #fff' }}>{emp.office}</Box>
-          </Box>
-        ))}
-      </Box>
+      <div className={styles.tableHeaderRow}>
+        <div className={styles.tableHeaderCell}>STT</div>
+        <div className={styles.tableHeaderCell}>Tên</div>
+        <div className={styles.tableHeaderCell}>Chức vụ</div>
+        <div className={styles.tableHeaderCell}>Địa điểm</div>
+      </div>
+      {/* Table Body */}
+      {paginated.map((emp, idx) => (
+        <div
+          key={emp.id}
+          className={styles.tableRow}
+          onDoubleClick={() => handleRowDoubleClick(emp)}
+        >
+          <div className={styles.tableCell}>{(page - 1) * rowsPerPage + idx + 1}</div>
+          <div className={styles.tableCell}>{emp.name}</div>
+          <div className={styles.tableCell}>{emp.position}</div>
+          <div className={styles.tableCell}>{emp.office}</div>
+        </div>
+      ))}
       {/* Pagination */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mt: 2 }}>
+      <div className={styles.pagination}>
         <IconButton onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}><ArrowBackIos fontSize="small" /></IconButton>
         {Array.from({ length: totalPages }, (_, i) => i + 1).map(num => (
           <Button
             key={num}
             variant={num === page ? 'contained' : 'outlined'}
-            sx={{ mx: 0.5, minWidth: 36, background: num === page ? '#283fd6' : '#fff', color: num === page ? '#fff' : '#283fd6', borderColor: '#283fd6' }}
+            className={num === page ? `${styles.pageBtn} ${styles.pageBtnActive}` : styles.pageBtn}
             onClick={() => setPage(num)}
           >
             {num}
           </Button>
         ))}
         <IconButton onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}><ArrowForwardIos fontSize="small" /></IconButton>
-      </Box>
+      </div>
       {/* Modal thêm nhân viên */}
       <Modal open={isModalOpen} onClose={handleModalClose}>
-        <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', bgcolor: 'background.paper', p: 4, borderRadius: 2, minWidth: 350 }}>
+        <div className={styles.modalBox}>
           <Typography variant="h6" sx={{ mb: 2 }}>Thêm nhân viên mới</Typography>
           <TextField
             label="Họ tên"
@@ -602,7 +550,7 @@ const EmployeeTable = () => {
               label="Chức vụ"
               onChange={e => setNewEmployee({ ...newEmployee, position: e.target.value })}
             >
-              {positions.map((pos, idx) => (
+              {Array.from(new Set(mockEmployees.map(e => e.position))).map((pos, idx) => (
                 <MenuItem key={idx} value={pos}>{pos}</MenuItem>
               ))}
             </Select>
@@ -633,15 +581,15 @@ const EmployeeTable = () => {
               ))}
             </Select>
           </FormControl>
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+          <Box className={styles.modalActions}>
             <Button onClick={handleModalClose}>Huỷ</Button>
             <Button variant="contained" onClick={handleModalSave}>Lưu</Button>
           </Box>
-        </Box>
+        </div>
       </Modal>
       {/* Modal chi tiết nhân viên */}
       <Modal open={detailModalOpen} onClose={() => setDetailModalOpen(false)}>
-        <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', bgcolor: 'background.paper', p: 4, borderRadius: 2, minWidth: 400, maxWidth: 500 }}>
+        <div className={styles.modalBox}>
           <Typography variant="h6" sx={{ mb: 2 }}>Thông tin nhân viên</Typography>
           {selectedEmployee && !isEditMode && (
             <>
@@ -678,7 +626,7 @@ const EmployeeTable = () => {
               <FormControl fullWidth sx={{ mb: 2 }}>
                 <InputLabel id="position-label-detail">Chức vụ</InputLabel>
                 <Select labelId="position-label-detail" value={editEmployee.position} label="Chức vụ" onChange={e => setEditEmployee({ ...editEmployee, position: e.target.value })}>
-                  {positions.map((pos, idx) => (
+                  {Array.from(new Set(mockEmployees.map(e => e.position))).map((pos, idx) => (
                     <MenuItem key={idx} value={pos}>{pos}</MenuItem>
                   ))}
                 </Select>
@@ -697,10 +645,10 @@ const EmployeeTable = () => {
               </Box>
             </>
           )}
-        </Box>
+        </div>
       </Modal>
       <AlertPopup open={openAlert} message={alertMessage} type="error" onClose={() => setOpenAlert(false)} />
-    </Box>
+    </div>
   );
 };
 

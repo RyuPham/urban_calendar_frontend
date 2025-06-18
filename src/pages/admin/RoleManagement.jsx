@@ -53,10 +53,6 @@ const RoleManagement = () => {
     const handleAdd = () => {
         setEditingId(null);
         form.resetFields();
-        const draft = localStorage.getItem(ROLE_DRAFT_KEY);
-        if (draft) {
-            form.setFieldsValue(JSON.parse(draft));
-        }
         setIsModalVisible(true);
     };
 
@@ -100,7 +96,6 @@ const RoleManagement = () => {
                 setOpenAlert(true);
             }
             form.setFieldsValue(newRole);
-            clearDraft();
             setIsModalVisible(false);
         } catch (error) {
             setAlertMessage('Lưu vai trò thất bại');
@@ -144,49 +139,26 @@ const RoleManagement = () => {
     ];
 
     return (
-        <div style={{ maxWidth: 900, margin: '40px auto', background: '#fff', borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.05)', paddingBottom: 32 }}>
-            <div style={{
-                background: '#283fd6',
-                color: '#fff',
-                padding: '16px 24px',
-                borderTopLeftRadius: 12,
-                borderTopRightRadius: 12,
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-            }}>
-                <h2 style={{ margin: 0 }}>Quản lý chức vụ</h2>
-                <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={handleAdd}
-                >
+        <div>
+            <div>
+                <h2>Quản lý chức vụ</h2>
+                <Button type="primary" icon={<PlusOutlined />} onClick={handleAdd}>
                     Thêm vai trò
                 </Button>
             </div>
-            <div style={{ padding: 24 }}>
+            <div>
                 <Table
                     columns={columns}
                     dataSource={roles}
                     rowKey="id"
                     pagination={{ position: ['bottomCenter'] }}
-                    locale={{
-                        emptyText: (
-                            <div style={{ textAlign: 'center', color: '#bfbfbf', padding: 40 }}>
-                                <div style={{ fontSize: 40, marginBottom: 8 }}>
-                                    <span role="img" aria-label="inbox">📥</span>
-                                </div>
-                                No data
-                            </div>
-                        )
-                    }}
                 />
             </div>
             <Modal
                 title={editingId ? 'Sửa vai trò' : 'Thêm vai trò'}
                 open={isModalVisible}
                 onOk={handleSubmit}
-                onCancel={() => { setIsModalVisible(false); clearDraft(); }}
+                onCancel={() => setIsModalVisible(false)}
             >
                 <Form form={form} layout="vertical" onValuesChange={handleFormChange}>
                     <Form.Item

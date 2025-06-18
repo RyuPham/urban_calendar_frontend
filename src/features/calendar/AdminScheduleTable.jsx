@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography, TextField, IconButton, Tooltip } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import styles from './AdminScheduleTable.module.css';
 
 const weekdays = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
 
@@ -72,6 +73,24 @@ const AdminScheduleTable = () => {
   const weekDates = useMemo(() => getWeekDates(currentDate), [currentDate]);
   const [events, setEvents] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [positionFilter, setPositionFilter] = useState('');
+  const [officeFilter, setOfficeFilter] = useState('');
+  const [positions, setPositions] = useState([]);
+  const [offices, setOffices] = useState([]);
+
+  useEffect(() => {
+    // Lấy danh sách chức vụ từ employees
+    setPositions(Array.from(new Set(employees.map(e => e.position).filter(Boolean))));
+    // Lấy địa điểm từ companies
+    const companiesData = localStorage.getItem('companies');
+    if (companiesData) {
+      try {
+        const companies = JSON.parse(companiesData);
+        setOffices(companies.map(c => c.name));
+      } catch {}
+    }
+  }, [employees]);
+
   useEffect(() => {
     const data = localStorage.getItem('employees');
     let allEvents = [];
@@ -95,57 +114,63 @@ const AdminScheduleTable = () => {
     }
     setEvents(allEvents);
   }, []);
+
   const filteredEmployees = employees.filter(emp =>
     emp.name && emp.name.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
-   
-    <Box sx={{
-      width: '100vw',
-      height: 'calc(100vh - 52px)', // nếu header cao 52px
-      background: '#f7fafd',
-      position: 'fixed',
-      top: '52px',
-      left: 0,
-      overflow: 'auto',
-      p: { xs: 0, md: 2 }, }}>
-      <Box sx={{ maxWidth: '100%', mx: 'auto', pt: 3, pb: 1, px: { xs: 1, md: 2 } }}>
-        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#1976d2', textAlign: 'center', letterSpacing: 0.5 }}>
-          Lịch làm việc nhân viên (theo tuần)
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <IconButton size="small" onClick={() => setCurrentDate(d => { const nd = new Date(d); nd.setDate(d.getDate() - 7); return nd; })} sx={{ border: '1px solid #1976d2', color: '#1976d2' }}>
-              {'<'}
-            </IconButton>
-            <Typography sx={{ fontWeight: 600, fontSize: 18, color: '#1976d2', minWidth: 120, textAlign: 'center' }}>
-              {formatDateDM(weekDates[0])} - {formatDateDM(weekDates[6])}
-            </Typography>
-            <IconButton size="small" onClick={() => setCurrentDate(d => { const nd = new Date(d); nd.setDate(d.getDate() + 7); return nd; })} sx={{ border: '1px solid #1976d2', color: '#1976d2' }}>
-              {'>'}
-            </IconButton>
-          </Box>
-          <TextField
-            size="small"
-            placeholder="Tìm kiếm nhân viên..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            sx={{ width: 220, background: '#fff', borderRadius: 2, boxShadow: 'none', border: '1px solid #1976d2' }}
-            InputProps={{ endAdornment: <SearchIcon sx={{ color: '#1976d2' }} /> }}
-          />
-        </Box>
-      </Box>
-      <TableContainer component={Paper} sx={{ borderRadius: 4, boxShadow: '0 4px 24px rgba(25, 118, 210, 0.08)', maxWidth: '100%', mx: 'auto', overflowX: 'auto' }}>
-        <Table sx={{ minWidth: 800 }}>
+    <div className={styles.container}>
+      <div className={styles.header}>
+        <div className={styles.title}>Lịch làm việc nhân viên (theo tuần)</div>
+        <div className={styles.headerBar}>
+          <div className={styles.headerBarLeft}>
+            <IconButton size="small" onClick={() => setCurrentDate(d => { const nd = new Date(d); nd.setDate(d.getDate() - 7); return nd; })} style={{ border: '1px solid #1976d2', color: '#1976d2' }}>{'<'}</IconButton>
+            <span className={styles.dateText}>{formatDateDM(weekDates[0])} - {formatDateDM(weekDates[6])}</span>
+            <IconButton size="small" onClick={() => setCurrentDate(d => { const nd = new Date(d); nd.setDate(d.getDate() + 7); return nd; })} style={{ border: '1px solid #1976d2', color: '#1976d2' }}>{'>'}</IconButton>
+          </div>
+          <div className={styles.filterBarRight}>
+            <select
+              value={positionFilter}
+              onChange={e => setPositionFilter(e.target.value)}
+              className={styles.filterSelect}
+            >
+              <option value="">-- Lọc chức vụ --</option>
+              {positions.map((pos, idx) => (
+                <option key={idx} value={pos}>{pos}</option>
+              ))}
+            </select>
+            <select
+              value={officeFilter}
+              onChange={e => setOfficeFilter(e.target.value)}
+              className={styles.filterSelect}
+            >
+              <option value="">-- Lọc địa điểm --</option>
+              {offices.map((of, idx) => (
+                <option key={idx} value={of}>{of}</option>
+              ))}
+            </select>
+            <TextField
+              size="small"
+              placeholder="Tìm kiếm nhân viên..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className={styles.searchInput}
+              InputProps={{ endAdornment: <SearchIcon sx={{ color: '#1976d2' }} /> }}
+            />
+          </div>
+        </div>
+      </div>
+      <div className={styles.tableContainer}>
+        <Table className={styles.table}>
           <TableHead>
-            <TableRow sx={{ background: 'linear-gradient(90deg, #1976d2 60%, #42a5f5 100%)', borderRadius: 2 }}>
-              <TableCell sx={{ color: '#fff', fontWeight: 'bold', width: 40, fontSize: 16, borderTopLeftRadius: 12, textAlign: 'center' }}>#</TableCell>
-              <TableCell sx={{ color: '#fff', fontWeight: 'bold', minWidth: 140, fontSize: 16, textAlign: 'left' }}>Tên nhân viên</TableCell>
+            <TableRow className={styles.tableHeaderRow}>
+              <TableCell className={`${styles.tableHeaderCell} ${styles.tableHeaderCellBorderRadius}`}>#</TableCell>
+              <TableCell className={`${styles.tableHeaderCell} ${styles.tableHeaderCellLeft}`}>Tên nhân viên</TableCell>
               {weekDates.map((date, idx) => (
-                <TableCell key={idx} align="center" sx={{ color: '#fff', fontWeight: 'bold', minWidth: 90, fontSize: 16, textAlign: 'center', whiteSpace: 'nowrap', p: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 15, color: idx === 0 ? '#ff3333' : '#fff', paddingTop: 6 }}>{weekdays[idx]}</div>
-                  <div style={{ fontWeight: 500, fontSize: 14, color: '#fff', paddingBottom: 6 }}>{formatDateDM(date)}</div>
+                <TableCell key={idx} className={`${styles.tableHeaderCell} ${styles.tableHeaderCellMinWidth}`}>
+                  <div className={idx === 0 ? `${styles.tableHeaderCellContent} ${styles.tableHeaderCellContentSunday}` : styles.tableHeaderCellContent}>{weekdays[idx]}</div>
+                  <div className={styles.tableHeaderCellDate}>{formatDateDM(date)}</div>
                 </TableCell>
               ))}
             </TableRow>
@@ -153,44 +178,51 @@ const AdminScheduleTable = () => {
           <TableBody>
             {filteredEmployees.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} align="center" sx={{ py: 4, color: '#888', fontSize: 18 }}>
+                <TableCell colSpan={9} align="center" className={styles.noEmployeeCell}>
                   Không tìm thấy nhân viên nào.
                 </TableCell>
               </TableRow>
             )}
             {filteredEmployees.map((emp, rowIdx) => (
-              <TableRow key={emp.id} sx={{ background: rowIdx % 2 === 0 ? '#f7fafd' : '#e3f2fd', transition: 'background 0.2s' }}>
-                <TableCell sx={{ fontWeight: 500, color: '#1976d2', fontSize: 15 }}>{rowIdx + 1}</TableCell>
-                <TableCell sx={{ fontWeight: 'bold', color: '#222', fontSize: 15, letterSpacing: 0.2 }}>{emp.name}</TableCell>
+              <TableRow key={emp.id} className={rowIdx % 2 === 0 ? styles.tableRowEven : styles.tableRowOdd}>
+                <TableCell className={styles.tableCellIndex}>{rowIdx + 1}</TableCell>
+                <TableCell className={styles.tableCellName}>{emp.name}</TableCell>
                 {weekDates.map((date, colIdx) => {
                   const userEvents = getUserEventsForDay(events, emp.id, date);
                   return (
-                    <TableCell key={colIdx} align="center" sx={{ background: '#fff', p: 0, minHeight: 48, border: '1px solid #e3e3e3', position: 'relative', transition: 'background 0.2s', '&:hover': { background: '#fff' } }}>
+                    <TableCell key={colIdx} className={styles.tableCell} align="center">
                       {userEvents.map((ev, i) => {
                         const start = new Date(ev.start);
                         const end = new Date(ev.end);
                         const timeStr = `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')} - ${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
                         return (
-                          <Tooltip key={i} title={<>
-                            <div><b></b> {ev.jobType}</div>
-                            {ev.description && <div><b>Mô tả:</b> {ev.description}</div>}
-                            {ev.location && <div><b>Địa điểm:</b> {ev.location}</div>}
-                          </>} arrow placement="top">
-                            <Box sx={{
-                              background: getJobTypeColor(ev.jobType),//màu loại công việc
-                              color: '#fff',
-                              borderRadius: 1.5,
-                              m: 0.5,
-                              p: '4px 10px',
-                              fontWeight: 600,
-                              fontSize: 15,
-                              boxShadow: '0 2px 8px rgba(25,118,210,0.10)',
-                              cursor: 'pointer',
-                              transition: 'background 0.2s',
-                              '&:hover': { filter: 'brightness(1.15)' }
-                            }}>
+                          <Tooltip
+                            key={i}
+                            title={<>
+                              <div><b></b> {ev.jobType}</div>
+                              {ev.description && <div><b>Mô tả:</b> {ev.description}</div>}
+                              {ev.location && <div><b>Địa điểm:</b> {ev.location}</div>}
+                            </>}
+                            arrow
+                            placement="top"
+                            PopperProps={{
+                              modifiers: [
+                                {
+                                  name: 'customStyle',
+                                  enabled: true,
+                                  phase: 'afterWrite',
+                                  fn: ({ state }) => {
+                                    if (state.elements && state.elements.popper) {
+                                      state.elements.popper.classList.add(styles.customTooltip);
+                                    }
+                                  },
+                                },
+                              ],
+                            }}
+                          >
+                            <div className={styles.eventBox} style={{ background: getJobTypeColor(ev.jobType) }}>
                               {timeStr}
-                            </Box>
+                            </div>
                           </Tooltip>
                         );
                       })}
@@ -201,9 +233,8 @@ const AdminScheduleTable = () => {
             ))}
           </TableBody>
         </Table>
-      </TableContainer>
-    </Box>
-    
+      </div>
+    </div>
   );
 };
 

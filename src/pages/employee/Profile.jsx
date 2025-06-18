@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Paper, Button, TextField, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
+import { Box, Typography, Paper, Button, TextField, FormControl, InputLabel, Select, MenuItem, Avatar } from '@mui/material';
 import { useSelector } from 'react-redux';
 import AlertPopup from '../../components/common/AlertPopup';
 
@@ -52,6 +52,9 @@ const Profile = () => {
                 <AlertPopup open={openAlert} message={alertMessage} type="error" onClose={() => setOpenAlert(false)} />
                 {!isEditMode ? (
                     <>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2 }}>
+                            <Avatar src={employee.avatar} sx={{ width: 80, height: 80, mb: 1 }} />
+                        </Box>
                         <Typography><b>Họ tên:</b> {employee.name}</Typography>
                         <Typography><b>Username:</b> {employee.username}</Typography>
                         <Typography><b>Email:</b> {employee.email}</Typography>
@@ -67,6 +70,9 @@ const Profile = () => {
                     </>
                 ) : (
                     <>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2 }}>
+                            <Avatar src={editEmployee.avatar || employee.avatar} sx={{ width: 80, height: 80, mb: 1 }} />
+                        </Box>
                         <TextField label="Họ tên" fullWidth sx={{ mb: 2 }} value={editEmployee.name} onChange={e => setEditEmployee({ ...editEmployee, name: e.target.value })} />
                         <TextField label="Số điện thoại" fullWidth sx={{ mb: 2 }} value={editEmployee.phone} onChange={e => setEditEmployee({ ...editEmployee, phone: e.target.value })} />
                         <FormControl fullWidth sx={{ mb: 2 }}>

@@ -3,6 +3,8 @@ import { Select, MenuItem, FormControl, InputLabel, Tooltip, IconButton, Menu as
 import AlertPopup from '../../components/common/AlertPopup';
 import Draggable from 'react-draggable';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import companies from '../../pages/admin/CompanyManagement';
+import jobTypes from '../../pages/admin/JobTypeManagement';
 
 const weekdays = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
 const hours = Array.from({ length: 24 }, (_, i) => `${i}h`);
@@ -61,22 +63,13 @@ function getWeekDates(currentDateInput) {
   });
 }
 
-// Định nghĩa màu cho từng loại công việc
+// Định nghĩa màu cho từng loại công việc (cứng)
 const jobTypeColors = {
-  'Nghỉ': '#008000',
   'Công tác': '#000080',
-  'Đang làm việc': '#cddc39',
-  'Ra ngoài gặp kh': '#4fc3f7',
-  'Làm việc từ xa': '#ffd600',
-  'Nghỉ phép có lương': '#ff7043',
+  'Ra ngoài gặp khách hàng': '#3a7d82',
+  'Làm việc từ xa / tại nhà': '#823f3a',
+  'Nghỉ phép có lương': '#525252',
 };
-// Sinh màu ngẫu nhiên nếu chưa có
-function getJobTypeColor(name) {
-  if (jobTypeColors[name]) return jobTypeColors[name];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return `hsl(${hash % 360}, 60%, 60%)`;
-}
 
 // Hàm lấy yyyy-mm-dd local
 const getLocalDateString = (date) => `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
@@ -91,7 +84,6 @@ export default function Calendar() {
   const [startCell, setStartCell] = useState(null);
   const [endCell, setEndCell] = useState(null);
   const [selectedCells, setSelectedCells] = useState([]);
-  const [jobTypes, setJobTypes] = useState([]);
   const [selectedJobType, setSelectedJobType] = useState('');
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [modalPos, setModalPos] = useState({ x: window.innerWidth / 2 - 180, y: window.innerHeight / 2 - 180 });
@@ -105,7 +97,7 @@ export default function Calendar() {
   const [menuEvent, setMenuEvent] = useState(null);
   const [editMode, setEditMode] = useState(false);
   const [tableReady, setTableReady] = useState(false);
-  const [offices, setOffices] = useState([]);
+  const offices = companies.map(c => c.name);
 
   // Lấy user hiện tại
   const currentUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -124,35 +116,11 @@ export default function Calendar() {
   }, [currentUser?.id]);
 
   useEffect(() => {
-    const data = localStorage.getItem('jobTypes');
-    if (data) setJobTypes(JSON.parse(data));
-  }, []);
-
-  useEffect(() => {
     if (selectedEvent) {
       setEditStartHour(selectedEvent.start.slice(11, 16));
       setEditEndHour(selectedEvent.end.slice(11, 16));
     }
   }, [selectedEvent]);
-
-  useEffect(() => {
-    // Lấy danh sách văn phòng từ localStorage
-    const officeData = localStorage.getItem('companies');
-    if (officeData) {
-      try {
-        const parsed = JSON.parse(officeData);
-        if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'object') {
-          setOffices(parsed.map(c => c.name));
-        } else {
-          setOffices(parsed);
-        }
-      } catch {
-        setOffices([]);
-      }
-    } else {
-      setOffices([]);
-    }
-  }, []);
 
   // Hàm chuyển tháng
   const prevMonth = () => {
@@ -367,7 +335,11 @@ export default function Calendar() {
   };
 
   // Khi render calendar, chỉ lấy event phù hợp
-  const filteredEvents = events.filter(ev => String(ev.userId) === String(currentUser?.id));
+  const filteredEvents = events.filter(ev => {
+    if (String(ev.userId) !== String(currentUser?.id)) return false;
+    const start = new Date(ev.start);
+    return start.getMonth() === month && start.getFullYear() === year;
+  });
 
   // Đặt lại hàm getEventForCell đúng vị trí
   const getEventForCell = (date, hour) => {
@@ -585,6 +557,16 @@ export default function Calendar() {
               Tháng sau
             </button>
           </div>
+          {/* Legend màu sắc các loại công việc */}
+          <div style={{ marginTop: 24, padding: 12, background: '#f9f9f9', borderRadius: 8, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
+            <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 8 }}>Chú thích màu công việc:</div>
+            {Object.entries(jobTypeColors).map(([type, color]) => (
+              <div key={type} style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ display: 'inline-block', width: 22, height: 22, borderRadius: 6, background: color, marginRight: 10, border: '1px solid #bbb' }}></span>
+                <span style={{ fontSize: 14 }}>{type}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
       {/* Cột phải: Lịch tuần */}
@@ -800,7 +782,7 @@ export default function Calendar() {
                     top: 0,
                     width,
                     height,
-                    background: getJobTypeColor(event.jobType) || '#6b8e23',
+                    background: jobTypeColors[event.jobType] || '#6b8e23',
                     color: '#fff',
                     borderRadius: 8,
                     zIndex: 10,

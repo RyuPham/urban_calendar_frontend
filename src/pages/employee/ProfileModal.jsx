@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Box, Typography, Button, TextField, FormControl, InputLabel, Select, MenuItem, Paper } from '@mui/material';
+import { Modal, Box, Typography, Button, TextField, FormControl, InputLabel, Select, MenuItem, Paper, Avatar } from '@mui/material';
 import { useSelector, useDispatch } from 'react-redux';
 import AlertPopup from '../../components/common/AlertPopup';
 import { logout } from '../../features/auth/authSlice';
@@ -16,6 +16,7 @@ const ProfileModal = ({ open, onClose }) => {
     const [editEmployee, setEditEmployee] = useState(null);
     const [openAlert, setOpenAlert] = useState(false);
     const [alertMessage, setAlertMessage] = useState('');
+    const [avatarPreview, setAvatarPreview] = useState(null);
 
     useEffect(() => {
         if (user) {
@@ -24,11 +25,25 @@ const ProfileModal = ({ open, onClose }) => {
                 const employees = JSON.parse(data);
                 const emp = employees.find(e => e.id === user.id);
                 setEmployee(emp || user);
+                setAvatarPreview((emp || user).avatar || null);
             } else {
                 setEmployee(user);
+                setAvatarPreview(user.avatar || null);
             }
         }
     }, [user, open]);
+
+    const handleAvatarChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setAvatarPreview(reader.result);
+                setEditEmployee({ ...editEmployee, avatar: reader.result });
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     const handleSave = () => {
         if (!editEmployee.name || !editEmployee.phone || !editEmployee.gender || !editEmployee.address) {
@@ -40,10 +55,11 @@ const ProfileModal = ({ open, onClose }) => {
         const data = localStorage.getItem(EMPLOYEE_KEY);
         if (data) {
             let employees = JSON.parse(data);
-            employees = employees.map(e => e.id === editEmployee.id ? { ...e, ...editEmployee } : e);
+            employees = employees.map(e => e.id === editEmployee.id ? { ...e, ...editEmployee, avatar: editEmployee.avatar || avatarPreview } : e);
             localStorage.setItem(EMPLOYEE_KEY, JSON.stringify(employees));
         }
-        setEmployee(editEmployee);
+        setEmployee({ ...editEmployee, avatar: editEmployee.avatar || avatarPreview });
+        setAvatarPreview(editEmployee.avatar || avatarPreview);
         setIsEditMode(false);
     };
 
@@ -61,6 +77,9 @@ const ProfileModal = ({ open, onClose }) => {
                 <AlertPopup open={openAlert} message={alertMessage} type="error" onClose={() => setOpenAlert(false)} />
                 {!isEditMode ? (
                     <>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2 }}>
+                            <Avatar src={avatarPreview} sx={{ width: 80, height: 80, mb: 1 }} />
+                        </Box>
                         <Typography><b>Họ tên:</b> {employee.name}</Typography>
                         <Typography><b>Username:</b> {employee.username}</Typography>
                         <Typography><b>Email:</b> {employee.email}</Typography>
@@ -78,6 +97,13 @@ const ProfileModal = ({ open, onClose }) => {
                     </>
                 ) : (
                     <>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 2 }}>
+                            <Avatar src={editEmployee.avatar || avatarPreview} sx={{ width: 80, height: 80, mb: 1 }} />
+                            <Button variant="outlined" component="label" sx={{ mt: 1 }}>
+                                Chọn ảnh đại diện
+                                <input type="file" accept="image/*" hidden onChange={handleAvatarChange} />
+                            </Button>
+                        </Box>
                         <TextField label="Họ tên" fullWidth sx={{ mb: 2 }} value={editEmployee.name} onChange={e => setEditEmployee({ ...editEmployee, name: e.target.value })} />
                         <TextField label="Số điện thoại" fullWidth sx={{ mb: 2 }} value={editEmployee.phone} onChange={e => setEditEmployee({ ...editEmployee, phone: e.target.value })} />
                         <FormControl fullWidth sx={{ mb: 2 }}>

@@ -27,9 +27,9 @@ const Layout = () => {
           component="main"
           sx={{
             width: '100%',
-            maxWidth: 1200,
-            pt: 8,
-            px: 3,
+            maxWidth: '100%',
+            pt: 0,
+            px: 0,
           }}
         >
           <Outlet />
