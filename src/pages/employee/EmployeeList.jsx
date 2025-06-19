@@ -12,6 +12,7 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Avatar,
 } from '@mui/material';
 import {
   Search,
@@ -21,6 +22,8 @@ import {
 import AlertPopup from '../../components/common/AlertPopup';
 import styles from './EmployeeList.module.css';
 import companies from '../admin/CompanyManagement';
+import stylesProfile from './ProfileModal.module.css';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
 
 // Mock data nhân viên
 const mockEmployees = [
@@ -248,6 +251,8 @@ const EmployeeTable = () => {
   const [editEmployee, setEditEmployee] = useState(null);
   const [openAlert, setOpenAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
+  const [avatarPreview, setAvatarPreview] = useState('');
+  const [openConfirm, setOpenConfirm] = useState(false);
 
   const offices = companies.map(c => c.name);
 
@@ -291,6 +296,25 @@ const EmployeeTable = () => {
     }
   }, [employees]);
 
+  // Đảm bảo reset form khi modal đóng
+  useEffect(() => {
+    if (!isModalOpen) {
+      setNewEmployee({
+        name: '',
+        password: '',
+        email: '',
+        phone: '',
+        gender: '',
+        address: '',
+        position: '',
+        office: '',
+        role: '',
+        avatar: null,
+      });
+      setAvatarPreview('');
+    }
+  }, [isModalOpen]);
+
   // Hàm xóa nhân viên
   const handleDelete = (id) => {
     if (window.confirm('Muốn xóa nhân viên này?')) {
@@ -302,7 +326,6 @@ const EmployeeTable = () => {
     setIsModalOpen(true);
     setNewEmployee({
       name: '',
-      username: '',
       password: '',
       email: '',
       phone: '',
@@ -311,7 +334,9 @@ const EmployeeTable = () => {
       position: '',
       office: '',
       role: '',
+      avatar: null,
     });
+    setAvatarPreview('');
   };
 
   const handleModalClose = () => {
@@ -340,14 +365,25 @@ const EmployeeTable = () => {
       setOpenAlert(true);
       return;
     }
-    if (!newEmployee.username || !newEmployee.password || !newEmployee.gender || !newEmployee.address || !newEmployee.position || !newEmployee.office || !newEmployee.role) {
+    if (!newEmployee.password || !newEmployee.gender || !newEmployee.address || !newEmployee.position || !newEmployee.office || !newEmployee.role) {
       setAlertMessage('Vui lòng nhập đầy đủ thông tin!');
       setOpenAlert(true);
       return;
     }
     const newId = employees.length > 0 ? Math.max(...employees.map(e => e.id)) + 1 : 1;
-    setEmployees(prev => [...prev, { ...newEmployee, id: newId }]);
+    setEmployees(prev => [...prev, { ...newEmployee, id: newId, avatar: newEmployee.avatar || null }]);
     setIsModalOpen(false);
+  };
+
+  const handleAvatarChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   // Hàm mở modal chi tiết khi double click
@@ -396,12 +432,16 @@ const EmployeeTable = () => {
 
   // Hàm xóa nhân viên từ modal chi tiết
   const handleDeleteEmployee = () => {
-    if (window.confirm('Bạn muốn xóa nhân viên này?')) {
-      const updatedEmployees = employees.filter(e => e.id !== selectedEmployee.id);
-      setEmployees(updatedEmployees);
-      localStorage.setItem(EMPLOYEE_KEY, JSON.stringify(updatedEmployees));
-      setDetailModalOpen(false);
-    }
+    setOpenConfirm(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!selectedEmployee) return;
+    const updatedEmployees = employees.filter(e => e.id !== selectedEmployee.id);
+    setEmployees(updatedEmployees);
+    localStorage.setItem(EMPLOYEE_KEY, JSON.stringify(updatedEmployees));
+    setDetailModalOpen(false);
+    setOpenConfirm(false);
   };
 
   return (
@@ -485,168 +525,325 @@ const EmployeeTable = () => {
       {/* Modal thêm nhân viên */}
       <Modal open={isModalOpen} onClose={handleModalClose}>
         <div className={styles.modalBox}>
-          <Typography variant="h6" sx={{ mb: 2 }}>Thêm nhân viên mới</Typography>
-          <TextField
-            label="Họ tên"
-            fullWidth
-            sx={{ mb: 2 }}
-            value={newEmployee.name}
-            onChange={e => setNewEmployee({ ...newEmployee, name: e.target.value })}
-          />
-          <TextField
-            label="Username"
-            fullWidth
-            sx={{ mb: 2 }}
-            value={newEmployee.username}
-            onChange={e => setNewEmployee({ ...newEmployee, username: e.target.value })}
-          />
-          <TextField
-            label="Password"
-            type="password"
-            fullWidth
-            sx={{ mb: 2 }}
-            value={newEmployee.password}
-            onChange={e => setNewEmployee({ ...newEmployee, password: e.target.value })}
-          />
-          <TextField
-            label="Email"
-            fullWidth
-            sx={{ mb: 2 }}
-            value={newEmployee.email}
-            onChange={e => setNewEmployee({ ...newEmployee, email: e.target.value })}
-          />
-          <TextField
-            label="Số điện thoại"
-            fullWidth
-            sx={{ mb: 2 }}
-            value={newEmployee.phone}
-            onChange={e => setNewEmployee({ ...newEmployee, phone: e.target.value })}
-          />
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel id="gender-label">Giới tính</InputLabel>
-            <Select
-              labelId="gender-label"
-              value={newEmployee.gender}
-              label="Giới tính"
-              onChange={e => setNewEmployee({ ...newEmployee, gender: e.target.value })}
-            >
-              <MenuItem value="Nam">Nam</MenuItem>
-              <MenuItem value="Nữ">Nữ</MenuItem>
-              <MenuItem value="Khác">Khác</MenuItem>
-            </Select>
-          </FormControl>
-          <TextField
-            label="Địa chỉ"
-            fullWidth
-            sx={{ mb: 2 }}
-            value={newEmployee.address}
-            onChange={e => setNewEmployee({ ...newEmployee, address: e.target.value })}
-          />
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel id="position-label">Chức vụ</InputLabel>
-            <Select
-              labelId="position-label"
-              value={newEmployee.position}
-              label="Chức vụ"
-              onChange={e => setNewEmployee({ ...newEmployee, position: e.target.value })}
-            >
-              {Array.from(new Set(mockEmployees.map(e => e.position))).map((pos, idx) => (
-                <MenuItem key={idx} value={pos}>{pos}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel id="office-label">Văn phòng</InputLabel>
-            <Select
-              labelId="office-label"
-              value={newEmployee.office}
-              label="Văn phòng"
-              onChange={e => setNewEmployee({ ...newEmployee, office: e.target.value })}
-            >
-              {offices.map((of, idx) => (
-                <MenuItem key={idx} value={of}>{of}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <FormControl fullWidth sx={{ mb: 2 }}>
-            <InputLabel id="role-label">Vai trò</InputLabel>
-            <Select
-              labelId="role-label"
-              value={newEmployee.role}
-              label="Vai trò"
-              onChange={e => setNewEmployee({ ...newEmployee, role: e.target.value })}
-            >
-              {roles.map((role) => (
-                <MenuItem key={role.id} value={role.name}>{role.name}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <Box className={styles.modalActions}>
-            <Button onClick={handleModalClose}>Huỷ</Button>
-            <Button variant="contained" onClick={handleModalSave}>Lưu</Button>
-          </Box>
-        </div>
-      </Modal>
-      {/* Modal chi tiết nhân viên */}
-      <Modal open={detailModalOpen} onClose={() => setDetailModalOpen(false)}>
-        <div className={styles.modalBox}>
-          <Typography variant="h6" sx={{ mb: 2 }}>Thông tin nhân viên</Typography>
-          {selectedEmployee && !isEditMode && (
-            <>
-              <Typography><b>Họ tên:</b> {selectedEmployee.name}</Typography>
-              <Typography><b>Username:</b> {selectedEmployee.username}</Typography>
-              <Typography><b>Email:</b> {selectedEmployee.email}</Typography>
-              <Typography><b>Số điện thoại:</b> {selectedEmployee.phone}</Typography>
-              <Typography><b>Giới tính:</b> {selectedEmployee.gender}</Typography>
-              <Typography><b>Địa chỉ:</b> {selectedEmployee.address}</Typography>
-              <Typography><b>Chức vụ:</b> {selectedEmployee.position}</Typography>
-              <Typography><b>Văn phòng:</b> {selectedEmployee.office}</Typography>
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
-                <Button variant="contained" onClick={() => { setIsEditMode(true); setEditEmployee(selectedEmployee); }}>Chỉnh sửa</Button>
-                <Button variant="contained" color="error" onClick={handleDeleteEmployee}>Xóa</Button>
-                <Button onClick={() => setDetailModalOpen(false)}>Đóng</Button>
-              </Box>
-            </>
-          )}
-          {selectedEmployee && isEditMode && (
-            <>
-              <TextField label="Họ tên" fullWidth sx={{ mb: 2 }} value={editEmployee.name} onChange={e => setEditEmployee({ ...editEmployee, name: e.target.value })} />
-              <TextField label="Username" fullWidth sx={{ mb: 2 }} value={editEmployee.username} onChange={e => setEditEmployee({ ...editEmployee, username: e.target.value })} />
-              <TextField label="Email" fullWidth sx={{ mb: 2 }} value={editEmployee.email} onChange={e => setEditEmployee({ ...editEmployee, email: e.target.value })} />
-              <TextField label="Số điện thoại" fullWidth sx={{ mb: 2 }} value={editEmployee.phone} onChange={e => setEditEmployee({ ...editEmployee, phone: e.target.value })} />
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel id="gender-label-detail">Giới tính</InputLabel>
-                <Select labelId="gender-label-detail" value={editEmployee.gender} label="Giới tính" onChange={e => setEditEmployee({ ...editEmployee, gender: e.target.value })}>
+          <h2 className={styles.addFormTitle}>Thêm nhân viên mới</h2>
+          <div className={styles.addFormRow}>
+            <div className={styles.addFormLeft}>
+              <div className={styles.avatarContainer}>
+                {avatarPreview ? (
+                  <img src={avatarPreview} alt="Avatar" className={styles.avatarRect} />
+                ) : (
+                  <img src="https://via.placeholder.com/240x300?text=Avatar" alt="Avatar" className={styles.avatarRect} />
+                )}
+                <label className={styles.avatarButton}>
+                  Chọn ảnh đại diện
+                  <input type="file" accept="image/*" hidden onChange={handleAvatarChange} />
+                </label>
+              </div>
+            </div>
+            <div className={styles.addFormRight}>
+              <TextField
+                label="Họ tên"
+                fullWidth
+                className={styles.addFormField}
+                value={newEmployee.name}
+                onChange={e => setNewEmployee({ ...newEmployee, name: e.target.value })}
+                autoComplete="off"
+              />
+              <TextField
+                label="Password"
+                type="password"
+                fullWidth
+                className={styles.addFormField}
+                value={newEmployee.password}
+                onChange={e => setNewEmployee({ ...newEmployee, password: e.target.value })}
+                autoComplete="new-password"
+              />
+              <TextField
+                label="Email"
+                fullWidth
+                className={styles.addFormField}
+                value={newEmployee.email}
+                onChange={e => setNewEmployee({ ...newEmployee, email: e.target.value })}
+              />
+              <TextField
+                label="Số điện thoại"
+                fullWidth
+                className={styles.addFormField}
+                value={newEmployee.phone}
+                onChange={e => setNewEmployee({ ...newEmployee, phone: e.target.value })}
+              />
+              <FormControl fullWidth className={styles.addFormField}>
+                <InputLabel id="gender-label">Giới tính</InputLabel>
+                <Select
+                  labelId="gender-label"
+                  value={newEmployee.gender}
+                  label="Giới tính"
+                  onChange={e => setNewEmployee({ ...newEmployee, gender: e.target.value })}
+                >
                   <MenuItem value="Nam">Nam</MenuItem>
                   <MenuItem value="Nữ">Nữ</MenuItem>
                   <MenuItem value="Khác">Khác</MenuItem>
                 </Select>
               </FormControl>
-              <TextField label="Địa chỉ" fullWidth sx={{ mb: 2 }} value={editEmployee.address} onChange={e => setEditEmployee({ ...editEmployee, address: e.target.value })} />
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel id="position-label-detail">Chức vụ</InputLabel>
-                <Select labelId="position-label-detail" value={editEmployee.position} label="Chức vụ" onChange={e => setEditEmployee({ ...editEmployee, position: e.target.value })}>
+              <TextField
+                label="Địa chỉ"
+                fullWidth
+                className={styles.addFormField}
+                value={newEmployee.address}
+                onChange={e => setNewEmployee({ ...newEmployee, address: e.target.value })}
+              />
+              <FormControl fullWidth className={styles.addFormField}>
+                <InputLabel id="position-label">Chức vụ</InputLabel>
+                <Select
+                  labelId="position-label"
+                  value={newEmployee.position}
+                  label="Chức vụ"
+                  onChange={e => setNewEmployee({ ...newEmployee, position: e.target.value })}
+                >
                   {Array.from(new Set(mockEmployees.map(e => e.position))).map((pos, idx) => (
                     <MenuItem key={idx} value={pos}>{pos}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel id="office-label-detail">Văn phòng</InputLabel>
-                <Select labelId="office-label-detail" value={editEmployee.office} label="Văn phòng" onChange={e => setEditEmployee({ ...editEmployee, office: e.target.value })}>
+              <FormControl fullWidth className={styles.addFormField}>
+                <InputLabel id="office-label">Văn phòng</InputLabel>
+                <Select
+                  labelId="office-label"
+                  value={newEmployee.office}
+                  label="Văn phòng"
+                  onChange={e => setNewEmployee({ ...newEmployee, office: e.target.value })}
+                >
                   {offices.map((of, idx) => (
                     <MenuItem key={idx} value={of}>{of}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
-                <Button variant="contained" onClick={handleSaveEdit}>Lưu</Button>
-                <Button onClick={() => setIsEditMode(false)}>Hủy</Button>
-              </Box>
-            </>
-          )}
+              <FormControl fullWidth className={styles.addFormField}>
+                <InputLabel id="role-label">Vai trò</InputLabel>
+                <Select
+                  labelId="role-label"
+                  value={newEmployee.role}
+                  label="Vai trò"
+                  onChange={e => setNewEmployee({ ...newEmployee, role: e.target.value })}
+                >
+                  {roles.map((role) => (
+                    <MenuItem key={role.id} value={role.name}>{role.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <div className={styles.modalActions}>
+                <Button onClick={() => {
+                  setIsModalOpen(false);
+                  setNewEmployee({
+                    name: '',
+                    password: '',
+                    email: '',
+                    phone: '',
+                    gender: '',
+                    address: '',
+                    position: '',
+                    office: '',
+                    role: '',
+                    avatar: null,
+                  });
+                  setAvatarPreview('');
+                }}>Huỷ</Button>
+                <Button variant="contained" onClick={handleModalSave}>Lưu</Button>
+              </div>
+            </div>
+          </div>
         </div>
       </Modal>
+      {/* Modal chi tiết nhân viên */}
+      {detailModalOpen && selectedEmployee && (
+        <>
+          <Modal open={detailModalOpen} onClose={() => setDetailModalOpen(false)}>
+            {isEditMode ? (
+              <div className={styles.modalBox}>
+                <div className={styles.addFormRow}>
+                  <div className={styles.addFormLeft}>
+                    <div className={styles.avatarContainer}>
+                      {editEmployee.avatar ? (
+                        <img src={editEmployee.avatar} alt="Avatar" className={styles.avatarRect} />
+                      ) : (
+                        <img src="https://via.placeholder.com/240x300?text=Avatar" alt="Avatar" className={styles.avatarRect} />
+                      )}
+                      <label className={styles.avatarButton}>
+                        Chọn ảnh đại diện
+                        <input type="file" accept="image/*" hidden onChange={e => {
+                          const file = e.target.files[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setEditEmployee({ ...editEmployee, avatar: reader.result });
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }} />
+                      </label>
+                    </div>
+                  </div>
+                  <div className={styles.addFormRight}>
+                    <TextField
+                      label="Họ tên"
+                      fullWidth
+                      className={styles.addFormField}
+                      value={editEmployee.name}
+                      onChange={e => setEditEmployee({ ...editEmployee, name: e.target.value })}
+                    />
+                    <TextField
+                      label="Email"
+                      fullWidth
+                      className={styles.addFormField}
+                      value={editEmployee.email}
+                      onChange={e => setEditEmployee({ ...editEmployee, email: e.target.value })}
+                    />
+                    <TextField
+                      label="Số điện thoại"
+                      fullWidth
+                      className={styles.addFormField}
+                      value={editEmployee.phone}
+                      onChange={e => setEditEmployee({ ...editEmployee, phone: e.target.value })}
+                    />
+                    <FormControl fullWidth className={styles.addFormField}>
+                      <InputLabel id="gender-label-edit">Giới tính</InputLabel>
+                      <Select
+                        labelId="gender-label-edit"
+                        value={editEmployee.gender}
+                        label="Giới tính"
+                        onChange={e => setEditEmployee({ ...editEmployee, gender: e.target.value })}
+                      >
+                        <MenuItem value="Nam">Nam</MenuItem>
+                        <MenuItem value="Nữ">Nữ</MenuItem>
+                        <MenuItem value="Khác">Khác</MenuItem>
+                      </Select>
+                    </FormControl>
+                    <TextField
+                      label="Địa chỉ"
+                      fullWidth
+                      className={styles.addFormField}
+                      value={editEmployee.address}
+                      onChange={e => setEditEmployee({ ...editEmployee, address: e.target.value })}
+                    />
+                    <FormControl fullWidth className={styles.addFormField}>
+                      <InputLabel id="position-label-edit">Chức vụ</InputLabel>
+                      <Select
+                        labelId="position-label-edit"
+                        value={editEmployee.position}
+                        label="Chức vụ"
+                        onChange={e => setEditEmployee({ ...editEmployee, position: e.target.value })}
+                      >
+                        {Array.from(new Set(mockEmployees.map(e => e.position))).map((pos, idx) => (
+                          <MenuItem key={idx} value={pos}>{pos}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <FormControl fullWidth className={styles.addFormField}>
+                      <InputLabel id="office-label-edit">Văn phòng</InputLabel>
+                      <Select
+                        labelId="office-label-edit"
+                        value={editEmployee.office}
+                        label="Văn phòng"
+                        onChange={e => setEditEmployee({ ...editEmployee, office: e.target.value })}
+                      >
+                        {offices.map((of, idx) => (
+                          <MenuItem key={idx} value={of}>{of}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <FormControl fullWidth className={styles.addFormField}>
+                      <InputLabel id="role-label-edit">Vai trò</InputLabel>
+                      <Select
+                        labelId="role-label-edit"
+                        value={editEmployee.role}
+                        label="Vai trò"
+                        onChange={e => setEditEmployee({ ...editEmployee, role: e.target.value })}
+                      >
+                        {roles.map((role) => (
+                          <MenuItem key={role.id} value={role.name}>{role.name}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <div className={styles.modalActions}>
+                      <Button onClick={() => setIsEditMode(false)}>Hủy</Button>
+                      <Button variant="contained" onClick={handleSaveEdit}>Lưu</Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className={stylesProfile.profileModalBox}>
+                <div className={stylesProfile.profileHeader}>
+                  <div className={stylesProfile.profileAvatarCol}>
+                    {selectedEmployee.avatar ? (
+                      <img src={selectedEmployee.avatar} alt="Avatar" className={stylesProfile.profileAvatarRect} />
+                    ) : (
+                      <div className={`${stylesProfile.profileAvatarRect} ${stylesProfile.profileAvatarPlaceholder}`} />
+                    )}
+                  </div>
+                  <div className={stylesProfile.profileNameCol}>
+                    <div className={stylesProfile.profileName}>{selectedEmployee.name}</div>
+                  </div>
+                </div>
+                <div className={stylesProfile.profileInfoSection}>
+                  <div className={stylesProfile.profileInfoBlock}>
+                    <div className={stylesProfile.profileInfoTitle}>Thông tin cá nhân</div>
+                    <div className={stylesProfile.profileInfoGrid}>
+                      <div>
+                        <div className={stylesProfile.profileInfoLabel}>Email</div>
+                        <div className={stylesProfile.profileInfoValue}>{selectedEmployee.email}</div>
+                      </div>
+                      <div>
+                        <div className={stylesProfile.profileInfoLabel}>Số điện thoại</div>
+                        <div className={stylesProfile.profileInfoValue}>{selectedEmployee.phone}</div>
+                      </div>
+                      <div>
+                        <div className={stylesProfile.profileInfoLabel}>Giới tính</div>
+                        <div className={stylesProfile.profileInfoValue}>{selectedEmployee.gender}</div>
+                      </div>
+                      <div>
+                        <div className={stylesProfile.profileInfoLabel}>Địa chỉ</div>
+                        <div className={stylesProfile.profileInfoValue}>{selectedEmployee.address}</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className={stylesProfile.profileInfoBlock}>
+                    <div className={stylesProfile.profileInfoTitle}>Thông tin công việc</div>
+                    <div className={stylesProfile.profileInfoGrid}>
+                      <div>
+                        <div className={stylesProfile.profileInfoLabel}>Chức vụ</div>
+                        <div className={stylesProfile.profileInfoValue}>{selectedEmployee.position}</div>
+                      </div>
+                      <div>
+                        <div className={stylesProfile.profileInfoLabel}>Văn phòng</div>
+                        <div className={stylesProfile.profileInfoValue}>{selectedEmployee.office}</div>
+                      </div>
+                      <div>
+                        <div className={stylesProfile.profileInfoLabel}>Vai trò</div>
+                        <div className={stylesProfile.profileInfoValue}>{selectedEmployee.role}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className={stylesProfile.profileModalActions}>
+                  <Button variant="contained" onClick={() => { setIsEditMode(true); setEditEmployee(selectedEmployee); }}>Chỉnh sửa</Button>
+                  <Button variant="contained" color="error" onClick={handleDeleteEmployee}>Xóa</Button>
+                  <Button onClick={() => setDetailModalOpen(false)}>Đóng</Button>
+                </div>
+              </div>
+            )}
+          </Modal>
+          <ConfirmDialog
+            open={openConfirm}
+            title="Xác nhận xóa nhân viên"
+            content="Bạn muốn xóa nhân viên này?"
+            onConfirm={handleConfirmDelete}
+            onCancel={() => setOpenConfirm(false)}
+            okText="Xóa"
+            cancelText="Hủy"
+          />
+        </>
+      )}
       <AlertPopup open={openAlert} message={alertMessage} type="error" onClose={() => setOpenAlert(false)} />
     </div>
   );

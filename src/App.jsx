@@ -17,6 +17,7 @@ import JobTypeManagement from './pages/admin/JobTypeManagement.jsx';
 import Profile from './pages/employee/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminScheduleTable from './features/calendar/AdminScheduleTable';
+import ChangePassword from './pages/auth/ChangePassword.jsx';
 
 const App = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -83,6 +84,7 @@ const App = () => {
               </ProtectedRoute>
             } />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/change-password" element={<ChangePassword />} />
           </Route>
           <Route path="/login" element={<Login />} />   
 

@@ -3,6 +3,8 @@ import { useSelector } from 'react-redux';
 import { Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography, TextField, IconButton, Tooltip } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import styles from './AdminScheduleTable.module.css';
+import chucvu from '../../pages/admin/ChucvuManagement';
+import companies from '../../pages/admin/CompanyManagement';
 
 const weekdays = ["CN", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];
 
@@ -77,19 +79,11 @@ const AdminScheduleTable = () => {
   const [officeFilter, setOfficeFilter] = useState('');
   const [positions, setPositions] = useState([]);
   const [offices, setOffices] = useState([]);
-
+//lấy danh sách chức vụ và địa điểm từ chucvu.jsx và CompanyManagement.jsx
   useEffect(() => {
-    // Lấy danh sách chức vụ từ employees
-    setPositions(Array.from(new Set(employees.map(e => e.position).filter(Boolean))));
-    // Lấy địa điểm từ companies
-    const companiesData = localStorage.getItem('companies');
-    if (companiesData) {
-      try {
-        const companies = JSON.parse(companiesData);
-        setOffices(companies.map(c => c.name));
-      } catch {}
-    }
-  }, [employees]);
+    setPositions(chucvu.map(c => c.name));
+    setOffices(companies.map(c => c.name));
+  }, []);
 
   useEffect(() => {
     const data = localStorage.getItem('employees');
@@ -115,7 +109,10 @@ const AdminScheduleTable = () => {
     setEvents(allEvents);
   }, []);
 
+  // Lọc nhân viên theo chức vụ, địa điểm và tên
   const filteredEmployees = employees.filter(emp =>
+    (!positionFilter || emp.position === positionFilter) &&
+    (!officeFilter || emp.office === officeFilter) &&
     emp.name && emp.name.toLowerCase().includes(search.toLowerCase())
   );
 
