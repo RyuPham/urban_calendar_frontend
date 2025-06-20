@@ -224,8 +224,8 @@ const EmployeeTable = () => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const rowsPerPage = 15;
-  // State lọc
-  const [positionFilter, setPositionFilter] = useState('');
+  // [UPDATED] State lọc vai trò
+  const [roleFilter, setRoleFilter] = useState('');
   const [officeFilter, setOfficeFilter] = useState('');
   // State quản lý danh sách nhân viên
   const [employees, setEmployees] = useState([]);
@@ -239,11 +239,10 @@ const EmployeeTable = () => {
     password: '',
     email: '',
     phone: '',
-    gender: '',
-    address: '',
-    position: '',
+    startdate: '',
     office: '',
     role: '',
+    avatar: null,
   });
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -256,8 +255,9 @@ const EmployeeTable = () => {
 
   const offices = companies.map(c => c.name);
 
+  // [UPDATED] Lọc nhân viên theo vai trò
   const filtered = employees.filter(emp =>
-    (positionFilter ? emp.position === positionFilter : true) &&
+    (roleFilter ? emp.role === roleFilter : true) &&
     (officeFilter ? emp.office === officeFilter : true) &&
     (
       !search ||
@@ -304,9 +304,7 @@ const EmployeeTable = () => {
         password: '',
         email: '',
         phone: '',
-        gender: '',
-        address: '',
-        position: '',
+        startdate: '',
         office: '',
         role: '',
         avatar: null,
@@ -329,9 +327,7 @@ const EmployeeTable = () => {
       password: '',
       email: '',
       phone: '',
-      gender: '',
-      address: '',
-      position: '',
+      startdate: new Date().toISOString().slice(0, 10),
       office: '',
       role: '',
       avatar: null,
@@ -361,11 +357,11 @@ const EmployeeTable = () => {
     // Validate số điện thoại không quá 15 số
     const phoneRegex = /^\d{1,15}$/;
     if (!newEmployee.phone || !phoneRegex.test(newEmployee.phone)) {
-      setAlertMessage('Số điện thoại không được vượt quá 15 số!');
+      setAlertMessage('SDT không được sai hoặc vượt quá 15 số!');
       setOpenAlert(true);
       return;
     }
-    if (!newEmployee.password || !newEmployee.gender || !newEmployee.address || !newEmployee.position || !newEmployee.office || !newEmployee.role) {
+    if (!newEmployee.password || !newEmployee.startdate || !newEmployee.office || !newEmployee.role) {
       setAlertMessage('Vui lòng nhập đầy đủ thông tin!');
       setOpenAlert(true);
       return;
@@ -413,15 +409,16 @@ const EmployeeTable = () => {
     // Validate số điện thoại không quá 15 số
     const phoneRegex = /^\d{1,15}$/;
     if (!editEmployee.phone || !phoneRegex.test(editEmployee.phone)) {
-      setAlertMessage('Số điện thoại không được vượt quá 15 số!');
+      setAlertMessage('Số điện thoại không được sai hoặc vượt quá 15 số!');
       setOpenAlert(true);
       return;
     }
-    if (!editEmployee.username || !editEmployee.gender || !editEmployee.address || !editEmployee.position || !editEmployee.office) {
+    if (!editEmployee.startdate || !editEmployee.office) {
       setAlertMessage('Vui lòng nhập đầy đủ thông tin!');
       setOpenAlert(true);
       return;
     }
+    // Không kiểm tra avatar, chỉ lưu lại thông tin
     const updatedEmployees = employees.map(e => e.id === editEmployee.id ? { ...editEmployee } : e);
     setEmployees(updatedEmployees);
     localStorage.setItem(EMPLOYEE_KEY, JSON.stringify(updatedEmployees));
@@ -437,10 +434,10 @@ const EmployeeTable = () => {
 
   const handleConfirmDelete = () => {
     if (!selectedEmployee) return;
-    const updatedEmployees = employees.filter(e => e.id !== selectedEmployee.id);
-    setEmployees(updatedEmployees);
-    localStorage.setItem(EMPLOYEE_KEY, JSON.stringify(updatedEmployees));
-    setDetailModalOpen(false);
+      const updatedEmployees = employees.filter(e => e.id !== selectedEmployee.id);
+      setEmployees(updatedEmployees);
+      localStorage.setItem(EMPLOYEE_KEY, JSON.stringify(updatedEmployees));
+      setDetailModalOpen(false);
     setOpenConfirm(false);
   };
 
@@ -459,14 +456,15 @@ const EmployeeTable = () => {
       </div>
       {/* Bộ lọc */}
       <div className={styles.filterBar}>
+        {/* [UPDATED] Dropdown lọc vai trò */}
         <select
-          value={positionFilter}
-          onChange={e => setPositionFilter(e.target.value)}
+          value={roleFilter}
+          onChange={e => setRoleFilter(e.target.value)}
           className={styles.filterSelect}
         >
-          <option value="">-- Lọc chức vụ --</option>
-          {Array.from(new Set(mockEmployees.map(e => e.position))).map((pos, idx) => (
-            <option key={idx} value={pos}>{pos}</option>
+          <option value="">-- Lọc vai trò --</option>
+          {roles.map((role, idx) => (
+            <option key={idx} value={role.name}>{role.name}</option>
           ))}
         </select>
         <select
@@ -491,22 +489,28 @@ const EmployeeTable = () => {
       <div className={styles.tableHeaderRow}>
         <div className={styles.tableHeaderCell}>STT</div>
         <div className={styles.tableHeaderCell}>Tên</div>
-        <div className={styles.tableHeaderCell}>Chức vụ</div>
-        <div className={styles.tableHeaderCell}>Địa điểm</div>
+        <div className={styles.tableHeaderCell}>Vai trò</div>
+        <div className={styles.tableHeaderCell}>Trụ sở</div>
       </div>
-      {/* Table Body */}
-      {paginated.map((emp, idx) => (
+        {/* Table Body */}
+        {paginated.map((emp, idx) => (
         <div
-          key={emp.id}
+            key={emp.id}
           className={styles.tableRow}
-          onDoubleClick={() => handleRowDoubleClick(emp)}
-        >
+            onDoubleClick={() => handleRowDoubleClick(emp)}
+          >
           <div className={styles.tableCell}>{(page - 1) * rowsPerPage + idx + 1}</div>
           <div className={styles.tableCell}>{emp.name}</div>
-          <div className={styles.tableCell}>{emp.position}</div>
+          <div className={styles.tableCell}>
+            {(() => {
+              // Tìm vai trò theo tên hoặc id (nếu cần)
+              const foundRole = roles.find(r => r.name === emp.role || r.id === emp.role);
+              return foundRole ? foundRole.name : emp.role || '';
+            })()}
+          </div>
           <div className={styles.tableCell}>{emp.office}</div>
         </div>
-      ))}
+        ))}
       {/* Pagination */}
       <div className={styles.pagination}>
         <IconButton onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}><ArrowBackIos fontSize="small" /></IconButton>
@@ -541,96 +545,70 @@ const EmployeeTable = () => {
               </div>
             </div>
             <div className={styles.addFormRight}>
-              <TextField
-                label="Họ tên"
-                fullWidth
+          <TextField
+            label="Họ tên"
+            fullWidth
                 className={styles.addFormField}
-                value={newEmployee.name}
-                onChange={e => setNewEmployee({ ...newEmployee, name: e.target.value })}
+            value={newEmployee.name}
+            onChange={e => setNewEmployee({ ...newEmployee, name: e.target.value })}
                 autoComplete="off"
-              />
-              <TextField
-                label="Password"
-                type="password"
-                fullWidth
+          />
+          <TextField
+            label="Password"
+            type="password"
+            fullWidth
                 className={styles.addFormField}
-                value={newEmployee.password}
-                onChange={e => setNewEmployee({ ...newEmployee, password: e.target.value })}
+            value={newEmployee.password}
+            onChange={e => setNewEmployee({ ...newEmployee, password: e.target.value })}
                 autoComplete="new-password"
-              />
-              <TextField
-                label="Email"
-                fullWidth
+          />
+          <TextField
+            label="Email"
+            fullWidth
                 className={styles.addFormField}
-                value={newEmployee.email}
-                onChange={e => setNewEmployee({ ...newEmployee, email: e.target.value })}
-              />
-              <TextField
-                label="Số điện thoại"
-                fullWidth
+            value={newEmployee.email}
+            onChange={e => setNewEmployee({ ...newEmployee, email: e.target.value })}
+          />
+          <TextField
+            label="Số điện thoại"
+            fullWidth
                 className={styles.addFormField}
-                value={newEmployee.phone}
-                onChange={e => setNewEmployee({ ...newEmployee, phone: e.target.value })}
-              />
+            value={newEmployee.phone}
+            onChange={e => setNewEmployee({ ...newEmployee, phone: e.target.value })}
+          />
+          <TextField
+            label="Ngày bắt đầu"
+            fullWidth
+            className={styles.addFormField}
+            value={newEmployee.startdate}
+            InputProps={{ readOnly: true }}
+          />
               <FormControl fullWidth className={styles.addFormField}>
-                <InputLabel id="gender-label">Giới tính</InputLabel>
-                <Select
-                  labelId="gender-label"
-                  value={newEmployee.gender}
-                  label="Giới tính"
-                  onChange={e => setNewEmployee({ ...newEmployee, gender: e.target.value })}
-                >
-                  <MenuItem value="Nam">Nam</MenuItem>
-                  <MenuItem value="Nữ">Nữ</MenuItem>
-                  <MenuItem value="Khác">Khác</MenuItem>
-                </Select>
-              </FormControl>
-              <TextField
-                label="Địa chỉ"
-                fullWidth
-                className={styles.addFormField}
-                value={newEmployee.address}
-                onChange={e => setNewEmployee({ ...newEmployee, address: e.target.value })}
-              />
+            <InputLabel id="office-label">Trụ sở</InputLabel>
+            <Select
+              labelId="office-label"
+              value={newEmployee.office}
+              label="Trụ sở"
+              onChange={e => setNewEmployee({ ...newEmployee, office: e.target.value })}
+            >
+              {offices.map((of, idx) => (
+                <MenuItem key={idx} value={of}>{of}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
               <FormControl fullWidth className={styles.addFormField}>
-                <InputLabel id="position-label">Chức vụ</InputLabel>
-                <Select
-                  labelId="position-label"
-                  value={newEmployee.position}
-                  label="Chức vụ"
-                  onChange={e => setNewEmployee({ ...newEmployee, position: e.target.value })}
-                >
-                  {Array.from(new Set(mockEmployees.map(e => e.position))).map((pos, idx) => (
-                    <MenuItem key={idx} value={pos}>{pos}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl fullWidth className={styles.addFormField}>
-                <InputLabel id="office-label">Văn phòng</InputLabel>
-                <Select
-                  labelId="office-label"
-                  value={newEmployee.office}
-                  label="Văn phòng"
-                  onChange={e => setNewEmployee({ ...newEmployee, office: e.target.value })}
-                >
-                  {offices.map((of, idx) => (
-                    <MenuItem key={idx} value={of}>{of}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl fullWidth className={styles.addFormField}>
-                <InputLabel id="role-label">Vai trò</InputLabel>
-                <Select
-                  labelId="role-label"
-                  value={newEmployee.role}
-                  label="Vai trò"
-                  onChange={e => setNewEmployee({ ...newEmployee, role: e.target.value })}
-                >
-                  {roles.map((role) => (
-                    <MenuItem key={role.id} value={role.name}>{role.name}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+            <InputLabel id="role-label">Vai trò</InputLabel>
+            <Select
+              labelId="role-label"
+              value={newEmployee.role}
+              label="Vai trò"
+              onChange={e => setNewEmployee({ ...newEmployee, role: e.target.value })}
+            >
+              {roles.map((role) => (
+                <MenuItem key={role.id} value={role.name}>{role.name}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
               <div className={styles.modalActions}>
                 <Button onClick={() => {
                   setIsModalOpen(false);
@@ -639,16 +617,14 @@ const EmployeeTable = () => {
                     password: '',
                     email: '',
                     phone: '',
-                    gender: '',
-                    address: '',
-                    position: '',
+                    startdate: '',
                     office: '',
                     role: '',
                     avatar: null,
                   });
                   setAvatarPreview('');
                 }}>Huỷ</Button>
-                <Button variant="contained" onClick={handleModalSave}>Lưu</Button>
+            <Button variant="contained" onClick={handleModalSave}>Lưu</Button>
               </div>
             </div>
           </div>
@@ -657,7 +633,7 @@ const EmployeeTable = () => {
       {/* Modal chi tiết nhân viên */}
       {detailModalOpen && selectedEmployee && (
         <>
-          <Modal open={detailModalOpen} onClose={() => setDetailModalOpen(false)}>
+      <Modal open={detailModalOpen} onClose={() => setDetailModalOpen(false)}>
             {isEditMode ? (
               <div className={styles.modalBox}>
                 <div className={styles.addFormRow}>
@@ -706,51 +682,29 @@ const EmployeeTable = () => {
                       onChange={e => setEditEmployee({ ...editEmployee, phone: e.target.value })}
                     />
                     <FormControl fullWidth className={styles.addFormField}>
-                      <InputLabel id="gender-label-edit">Giới tính</InputLabel>
+                      <InputLabel id="gender-label-edit">Ngày bắt đầu</InputLabel>
                       <Select
                         labelId="gender-label-edit"
-                        value={editEmployee.gender}
-                        label="Giới tính"
-                        onChange={e => setEditEmployee({ ...editEmployee, gender: e.target.value })}
+                        value={editEmployee.startdate}
+                        label="Ngày bắt đầu"
+                        onChange={e => setEditEmployee({ ...editEmployee, startdate: e.target.value })}
                       >
-                        <MenuItem value="Nam">Nam</MenuItem>
-                        <MenuItem value="Nữ">Nữ</MenuItem>
-                        <MenuItem value="Khác">Khác</MenuItem>
-                      </Select>
-                    </FormControl>
-                    <TextField
-                      label="Địa chỉ"
-                      fullWidth
-                      className={styles.addFormField}
-                      value={editEmployee.address}
-                      onChange={e => setEditEmployee({ ...editEmployee, address: e.target.value })}
-                    />
+                  <MenuItem value={new Date().toLocaleDateString('en-CA')}>{new Date().toLocaleDateString('en-CA')}</MenuItem>
+                </Select>
+              </FormControl>
                     <FormControl fullWidth className={styles.addFormField}>
-                      <InputLabel id="position-label-edit">Chức vụ</InputLabel>
+                      <InputLabel id="position-label-edit">Trụ sở</InputLabel>
                       <Select
                         labelId="position-label-edit"
-                        value={editEmployee.position}
-                        label="Chức vụ"
-                        onChange={e => setEditEmployee({ ...editEmployee, position: e.target.value })}
-                      >
-                        {Array.from(new Set(mockEmployees.map(e => e.position))).map((pos, idx) => (
-                          <MenuItem key={idx} value={pos}>{pos}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                    <FormControl fullWidth className={styles.addFormField}>
-                      <InputLabel id="office-label-edit">Văn phòng</InputLabel>
-                      <Select
-                        labelId="office-label-edit"
                         value={editEmployee.office}
-                        label="Văn phòng"
+                        label="Trụ sở"
                         onChange={e => setEditEmployee({ ...editEmployee, office: e.target.value })}
                       >
-                        {offices.map((of, idx) => (
-                          <MenuItem key={idx} value={of}>{of}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
+                  {offices.map((of, idx) => (
+                    <MenuItem key={idx} value={of}>{of}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
                     <FormControl fullWidth className={styles.addFormField}>
                       <InputLabel id="role-label-edit">Vai trò</InputLabel>
                       <Select
@@ -766,7 +720,7 @@ const EmployeeTable = () => {
                     </FormControl>
                     <div className={styles.modalActions}>
                       <Button onClick={() => setIsEditMode(false)}>Hủy</Button>
-                      <Button variant="contained" onClick={handleSaveEdit}>Lưu</Button>
+                <Button variant="contained" onClick={handleSaveEdit}>Lưu</Button>
                     </div>
                   </div>
                 </div>
@@ -798,12 +752,8 @@ const EmployeeTable = () => {
                         <div className={stylesProfile.profileInfoValue}>{selectedEmployee.phone}</div>
                       </div>
                       <div>
-                        <div className={stylesProfile.profileInfoLabel}>Giới tính</div>
-                        <div className={stylesProfile.profileInfoValue}>{selectedEmployee.gender}</div>
-                      </div>
-                      <div>
-                        <div className={stylesProfile.profileInfoLabel}>Địa chỉ</div>
-                        <div className={stylesProfile.profileInfoValue}>{selectedEmployee.address}</div>
+                        <div className={stylesProfile.profileInfoLabel}>Ngày bắt đầu</div>
+                        <div className={stylesProfile.profileInfoValue}>{selectedEmployee.startdate}</div>
                       </div>
                     </div>
                   </div>
@@ -811,16 +761,18 @@ const EmployeeTable = () => {
                     <div className={stylesProfile.profileInfoTitle}>Thông tin công việc</div>
                     <div className={stylesProfile.profileInfoGrid}>
                       <div>
-                        <div className={stylesProfile.profileInfoLabel}>Chức vụ</div>
-                        <div className={stylesProfile.profileInfoValue}>{selectedEmployee.position}</div>
-                      </div>
-                      <div>
-                        <div className={stylesProfile.profileInfoLabel}>Văn phòng</div>
+                        <div className={stylesProfile.profileInfoLabel}>Trụ sở</div>
                         <div className={stylesProfile.profileInfoValue}>{selectedEmployee.office}</div>
                       </div>
                       <div>
                         <div className={stylesProfile.profileInfoLabel}>Vai trò</div>
-                        <div className={stylesProfile.profileInfoValue}>{selectedEmployee.role}</div>
+                        <div className={stylesProfile.profileInfoValue}>
+                          {(() => {
+                            // Tìm vai trò theo tên hoặc id (nếu cần)
+                            const foundRole = roles.find(r => r.name === selectedEmployee.role || r.id === selectedEmployee.role);
+                            return foundRole ? foundRole.name : selectedEmployee.role || '';
+                          })()}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -842,9 +794,9 @@ const EmployeeTable = () => {
             okText="Xóa"
             cancelText="Hủy"
           />
-        </>
-      )}
-      <AlertPopup open={openAlert} message={alertMessage} type="error" onClose={() => setOpenAlert(false)} />
+            </>
+          )}
+      <AlertPopup open={openAlert} message={alertMessage} type="error" onClose={() => setOpenAlert(false)} className={isModalOpen ? styles.alertOnModal : ''} />
     </div>
   );
 };

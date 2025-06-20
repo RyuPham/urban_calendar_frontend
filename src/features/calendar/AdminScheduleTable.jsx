@@ -53,20 +53,17 @@ function getUserEventsForDay(events, userId, date) {
   });
 }
 
-// Hàm lấy màu loại ca giống Calendar.jsx
+// [UPDATED] Định nghĩa màu giống Calendar.jsx
 const jobTypeColors = {
-  'Nghỉ': '#008000',
   'Công tác': '#000080',
-  'Đang làm việc': '#cddc39',
-  'Ra ngoài gặp kh': '#4fc3f7',
-  'Làm việc từ xa': '#ffd600',
-  'Nghỉ phép có lương': '#ff7043',
+  'Ra ngoài gặp khách hàng': '#3a7d82',
+  'Làm việc từ xa / tại nhà': '#823f3a',
+  'Nghỉ phép có lương': '#525252',
 };
+// [UPDATED] Hàm lấy màu loại công việc
 function getJobTypeColor(name) {
   if (jobTypeColors[name]) return jobTypeColors[name];
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return `hsl(${hash % 360}, 60%, 60%)`;
+  return '#888'; // màu mặc định nếu không có trong jobTypeColors
 }
 
 const AdminScheduleTable = () => {
@@ -75,17 +72,25 @@ const AdminScheduleTable = () => {
   const weekDates = useMemo(() => getWeekDates(currentDate), [currentDate]);
   const [events, setEvents] = useState([]);
   const [employees, setEmployees] = useState([]);
-  const [positionFilter, setPositionFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
   const [officeFilter, setOfficeFilter] = useState('');
-  const [positions, setPositions] = useState([]);
+  const [roles, setRoles] = useState([]);
   const [offices, setOffices] = useState([]);
-//lấy danh sách chức vụ và địa điểm từ chucvu.jsx và CompanyManagement.jsx
+
+  // [API POINT] Lấy danh sách vai trò từ API
   useEffect(() => {
-    setPositions(chucvu.map(c => c.name));
+    const data = localStorage.getItem('roles');
+    if (data) {
+      setRoles(JSON.parse(data));
+    } else {
+      setRoles([]);
+    }
+    // [API POINT] Lấy danh sách công ty từ API
     setOffices(companies.map(c => c.name));
   }, []);
 
   useEffect(() => {
+    // [API POINT] Lấy danh sách nhân viên và events từ API
     const data = localStorage.getItem('employees');
     let allEvents = [];
     if (data) {
@@ -109,9 +114,9 @@ const AdminScheduleTable = () => {
     setEvents(allEvents);
   }, []);
 
-  // Lọc nhân viên theo chức vụ, địa điểm và tên
+  // [UPDATED] Lọc nhân viên theo vai trò, địa điểm và tên
   const filteredEmployees = employees.filter(emp =>
-    (!positionFilter || emp.position === positionFilter) &&
+    (!roleFilter || emp.role === roleFilter) &&
     (!officeFilter || emp.office === officeFilter) &&
     emp.name && emp.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -128,13 +133,13 @@ const AdminScheduleTable = () => {
           </div>
           <div className={styles.filterBarRight}>
             <select
-              value={positionFilter}
-              onChange={e => setPositionFilter(e.target.value)}
+              value={roleFilter}
+              onChange={e => setRoleFilter(e.target.value)}
               className={styles.filterSelect}
             >
-              <option value="">-- Lọc chức vụ --</option>
-              {positions.map((pos, idx) => (
-                <option key={idx} value={pos}>{pos}</option>
+              <option value="">-- Lọc vai trò --</option>
+              {roles.map((role, idx) => (
+                <option key={idx} value={role.name}>{role.name}</option>
               ))}
             </select>
             <select

@@ -32,75 +32,81 @@ const Header = () => {
     navigate("/login");
   };
 
+  // Lấy quyền thực tế
+  let userCode = user?.code;
+  if (!userCode && user?.role) {
+    if (user.role === 'Quản lý') userCode = 'Admin';
+    else if (user.role === 'Nhân viên') userCode = 'User';
+    else userCode = user.role;
+  }
+
   return (
     <header className="urban-header">
-      <div className="urban-header__logo">
-        <Link to="/Home">
-          <img src={logo} alt="Logo" style={{ height: 40, marginRight: 10, cursor: 'pointer' }} />
-        </Link>
-      </div>
-      <nav className="urban-header__nav" style={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
-        {menuItems.map((item, idx) => (
-          <Link
-            key={idx}
-            to={item.path}
-            className="urban-header__nav-item"
-          >
-            {item.label}
+      <div className="urban-header__left">
+        <div className="urban-header__logo">
+          <Link to="/Home">
+            <img src={logo} alt="Logo" style={{ height: 40, marginRight: 10, cursor: 'pointer' }} />
           </Link>
-        ))}
-        {/* Chỉ hiển thị CALENDAR cho user thường đã đăng nhập */}
-        {isAuthenticated && user?.role?.toLowerCase() !== 'admin' && (
-          <Link
-            to="/calendar"
-            className="urban-header__nav-item"
-            style={{ marginLeft: 16, color: undefined, cursor: 'pointer' }}
-          >
-            CALENDAR
-          </Link>
-        )}
-        {isAuthenticated && user?.role?.toLowerCase() === 'admin' && (
-          <Link
-            to="/admin/employees"
-            className="urban-header__nav-item"
-            style={{ marginLeft: 16 }}
-          >
-            QUẢN LÝ NHÂN VIÊN
-          </Link>
-        )}
-        {isAuthenticated && user?.role?.toLowerCase() === 'admin' && (
-          <Link
-            to="/admin/schedule"
-            className="urban-header__nav-item"
-            style={{ marginLeft: 16 }}
-          >
-            QUẢN LÝ LỊCH LÀM VIỆC
-          </Link>
-        )}
-        <div style={{ display: 'flex', alignItems: 'center', marginLeft: 400 }}>
-          {!isAuthenticated ? (
-            <Link to="/login" className="urban-header__nav-item">
-              ĐĂNG NHẬP
-            </Link>
-          ) : (
-            <>
-              <span
-                className="urban-header__nav-item"
-                style={{ fontWeight: 600, color: '#1976d2', marginRight: 8, cursor: 'default' }}
-              >
-                {user?.name || user?.username || 'Người dùng'}
-              </span>
-              <IconButton
-                sx={{ ml: 1 }}
-                onClick={() => setOpenProfileModal(true)}
-                color="primary"
-              >
-                <AccountCircleIcon fontSize="large" />
-              </IconButton>
-            </>
-          )}
         </div>
-      </nav>
+        <nav className="urban-header__nav">
+          {menuItems.map((item, idx) => (
+            <Link
+              key={idx}
+              to={item.path}
+              className="urban-header__nav-item"
+            >
+              {item.label}
+            </Link>
+          ))}
+          {/* Chỉ hiển thị CALENDAR cho user thường đã đăng nhập */}
+          {isAuthenticated && userCode === 'User' && (
+            <Link
+              to="/calendar"
+              className="urban-header__nav-item"
+            >
+              CALENDAR
+            </Link>
+          )}
+          {isAuthenticated && userCode === 'Admin' && (
+            <Link
+              to="/admin/employees"
+              className="urban-header__nav-item"
+            >
+              QUẢN LÝ NHÂN VIÊN
+            </Link>
+          )}
+          {isAuthenticated && userCode === 'Admin' && (
+            <Link
+              to="/admin/schedule"
+              className="urban-header__nav-item"
+            >
+              スケジュール
+            </Link>
+          )}
+        </nav>
+      </div>
+      <div className="urban-header__right">
+        {!isAuthenticated ? (
+          <Link to="/login" className="urban-header__nav-item">
+            ĐĂNG NHẬP
+          </Link>
+        ) : (
+          <>
+            <span
+              className="urban-header__user-name"
+            >
+              {user?.name || user?.username || 'Người dùng'}
+            </span>
+            <IconButton
+              sx={{ ml: 1 }}
+              onClick={() => setOpenProfileModal(true)}
+              color="primary"
+            >
+              <AccountCircleIcon fontSize="large" />
+            </IconButton>
+          </>
+        )}
+      </div>
       <ProfileModal open={openProfileModal} onClose={() => setOpenProfileModal(false)} />
       <AlertPopup open={openAlert} message={alertMessage} type="error" onClose={() => setOpenAlert(false)} />
     </header>

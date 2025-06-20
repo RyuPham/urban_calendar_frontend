@@ -21,9 +21,8 @@ export const initialData = {
     // ... other initial employees
   ],
   roles: [
-    { id: 1, name: 'Admin', description: 'Quản trị viên hệ thống' },
-    { id: 2, name: 'Manager', description: 'Quản lý' },
-    { id: 3, name: 'Employee', description: 'Nhân viên' },
+    { id: 1, name: 'Quản lý', description: 'Quản trị viên hệ thống', code: 'Admin' },
+    { id: 2, name: 'Nhân viên', description: 'Nhân viên', code: 'User' },
   ],
   companies: [
     { id: 1, name: 'Company A', address: 'Tokyo, Japan' },

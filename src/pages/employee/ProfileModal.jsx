@@ -6,6 +6,7 @@ import { logout } from '../../features/auth/authSlice';
 import { useNavigate } from 'react-router-dom';
 import styles from './ProfileModal.module.css';
 import empStyles from './EmployeeList.module.css';
+import companies from '../admin/CompanyManagement';
 
 const EMPLOYEE_KEY = 'employees';
 
@@ -102,12 +103,8 @@ const ProfileModal = ({ open, onClose }) => {
                                         <div className={styles.profileInfoValue}>{employee.phone}</div>
                                     </div>
                                     <div>
-                                        <div className={styles.profileInfoLabel}>Giới tính</div>
-                                        <div className={styles.profileInfoValue}>{employee.gender}</div>
-                                    </div>
-                                    <div>
-                                        <div className={styles.profileInfoLabel}>Địa chỉ</div>
-                                        <div className={styles.profileInfoValue}>{employee.address}</div>
+                                        <div className={styles.profileInfoLabel}>Ngày bắt đầu</div>
+                                        <div className={styles.profileInfoValue}>{employee.startdate}</div>
                                     </div>
                                 </div>
                             </div>
@@ -115,11 +112,7 @@ const ProfileModal = ({ open, onClose }) => {
                                 <div className={styles.profileInfoTitle}>Thông tin công việc</div>
                                 <div className={styles.profileInfoGrid}>
                                     <div>
-                                        <div className={styles.profileInfoLabel}>Chức vụ</div>
-                                        <div className={styles.profileInfoValue}>{employee.position}</div>
-                                    </div>
-                                    <div>
-                                        <div className={styles.profileInfoLabel}>Văn phòng</div>
+                                        <div className={styles.profileInfoLabel}>Trụ sở</div>
                                         <div className={styles.profileInfoValue}>{employee.office}</div>
                                     </div>
                                     <div>
@@ -148,27 +141,11 @@ const ProfileModal = ({ open, onClose }) => {
                     <div className={empStyles.modalBox}>
                         <div className={empStyles.addFormRow}>
                             <div className={empStyles.addFormLeft}>
-                                <div className={empStyles.avatarContainer}>
-                                    {editEmployee.avatar ? (
-                                        <img src={editEmployee.avatar} alt="Avatar" className={empStyles.avatarRect} />
-                                    ) : (
-                                        <img src="https://via.placeholder.com/240x300?text=Avatar" alt="Avatar" className={empStyles.avatarRect} />
-                                    )}
-                                    <label className={empStyles.avatarButton}>
-                                        Chọn ảnh đại diện
-                                        <input type="file" accept="image/*" hidden onChange={e => {
-                                            const file = e.target.files[0];
-                                            if (file) {
-                                                const reader = new FileReader();
-                                                reader.onloadend = () => {
-                                                    setEditEmployee({ ...editEmployee, avatar: reader.result });
-                                                    setAvatarPreview(reader.result);
-                                                };
-                                                reader.readAsDataURL(file);
-                                            }
-                                        }} />
-                                    </label>
-                                </div>
+                                {editEmployee.avatar ? (
+                                    <img src={editEmployee.avatar} alt="Avatar" className={empStyles.avatarRect} />
+                                ) : (
+                                    <div className={empStyles.avatarRect} style={{ background: '#f5f5f5' }} />
+                                )}
                             </div>
                             <div className={empStyles.addFormRight}>
                                 <TextField
@@ -192,26 +169,26 @@ const ProfileModal = ({ open, onClose }) => {
                                     value={editEmployee.phone}
                                     onChange={e => setEditEmployee({ ...editEmployee, phone: e.target.value })}
                                 />
-                                <FormControl fullWidth className={empStyles.addFormField}>
-                                    <InputLabel id="gender-label-edit">Giới tính</InputLabel>
-                                    <Select
-                                        labelId="gender-label-edit"
-                                        value={editEmployee.gender}
-                                        label="Giới tính"
-                                        onChange={e => setEditEmployee({ ...editEmployee, gender: e.target.value })}
-                                    >
-                                        <MenuItem value="Nam">Nam</MenuItem>
-                                        <MenuItem value="Nữ">Nữ</MenuItem>
-                                        <MenuItem value="Khác">Khác</MenuItem>
-                                    </Select>
-                                </FormControl>
                                 <TextField
-                                    label="Địa chỉ"
+                                    label="Ngày bắt đầu"
                                     fullWidth
                                     className={empStyles.addFormField}
-                                    value={editEmployee.address}
-                                    onChange={e => setEditEmployee({ ...editEmployee, address: e.target.value })}
+                                    value={editEmployee.startdate}
+                                    InputProps={{ readOnly: true }}
                                 />
+                                <FormControl fullWidth className={empStyles.addFormField}>
+                                    <InputLabel id="office-label-edit">Trụ sở</InputLabel>
+                                    <Select
+                                        labelId="office-label-edit"
+                                        value={editEmployee.office}
+                                        label="Trụ sở"
+                                        onChange={e => setEditEmployee({ ...editEmployee, office: e.target.value })}
+                                    >
+                                        {companies.map((c, idx) => (
+                                            <MenuItem key={idx} value={c.name}>{c.name}</MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
                                 <div className={empStyles.modalActions}>
                                     <Button onClick={() => setIsEditMode(false)}>Hủy</Button>
                                     <Button variant="contained" onClick={handleSave}>Lưu</Button>

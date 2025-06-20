@@ -99,17 +99,18 @@ export default function Calendar() {
   const [tableReady, setTableReady] = useState(false);
   const offices = companies.map(c => c.name);
 
-  // Lấy user hiện tại
+  // [API POINT] Lấy user hiện tại (có thể lấy từ API)
   const currentUser = JSON.parse(localStorage.getItem('currentUser'));
   const calendarKey = `calendarEvents_${currentUser?.id}`;
 
+  // [API POINT] Lấy danh sách events từ API
   const [events, setEvents] = useState(() => {
     const data = localStorage.getItem(calendarKey);
     return data ? JSON.parse(data) : [];
   });
 
   useEffect(() => {
-    // Khi đổi user, load lại events
+    // [API POINT] Khi đổi user, có thể gọi API lấy events mới
     const data = localStorage.getItem(calendarKey);
     setEvents(data ? JSON.parse(data) : []);
     // eslint-disable-next-line
@@ -140,16 +141,13 @@ export default function Calendar() {
     }
   };
 
-  // Hàm kiểm tra user đã đăng ký event trong ngày chưa
+  // [UPDATED] Hàm kiểm tra user đã đăng ký event trong ngày chưa
   const hasEventInDay = (dateStr) => {
-    // So sánh yyyy-mm-dd local
+    // Chỉ trả về true nếu đã có event có ngày bắt đầu đúng bằng dateStr
     return events.some(ev => {
       const start = new Date(ev.start);
-      const yyyy = start.getFullYear();
-      const mm = String(start.getMonth() + 1).padStart(2, '0');
-      const dd = String(start.getDate()).padStart(2, '0');
-      const localDate = `${yyyy}-${mm}-${dd}`;
-      return localDate === dateStr;
+      const eventDateStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+      return eventDateStr === dateStr;
     });
   };
 
@@ -203,14 +201,49 @@ export default function Calendar() {
     }
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = (e) => {
     if (isDragging && startCell && endCell) {
+      const dayIndex = startCell.dayIndex;
+      const startHour = Math.min(startCell.hourIndex, endCell.hourIndex);
+      const endHour = Math.max(startCell.hourIndex, endCell.hourIndex);
+
+      const firstCell = document.getElementById(`cell-${dayIndex}-${startHour}`);
+      const lastCell = document.getElementById(`cell-${dayIndex}-${endHour}`);
+      const gridBody = document.getElementById('calendar-grid-body'); // Lấy tbody qua ID
+      
+      if (firstCell && lastCell && gridBody) {
+        const firstRect = firstCell.getBoundingClientRect();
+        const lastRect = lastCell.getBoundingClientRect();
+        const gridBodyRect = gridBody.getBoundingClientRect();
+        
+        const selectionHeight = lastRect.bottom - firstRect.top;
+        
+        const formWidth = 360; 
+        const formHeight = 400;
+
+        let newX = firstRect.right + 15;
+        if (newX + formWidth > window.innerWidth - 10) {
+          newX = firstRect.left - formWidth - 15;
+        }
+
+        // Căn giữa form với vùng chọn
+        let newY = firstRect.top + (selectionHeight / 2) - (formHeight / 2);
+
+        // Ghim form vào trong ranh giới của tbody
+        newY = Math.max(newY, gridBodyRect.top); // Không cho vượt lên trên
+        newY = Math.min(newY, gridBodyRect.bottom - formHeight); // Không cho vượt xuống dưới
+
+        // Vì Draggable component được đặt ở root của trang, tọa độ này là tuyệt đối
+        setModalPos({ x: newX, y: newY });
+      }
+
       setIsDragging(false);
       setShowForm(true);
     }
   };
 
   const handleDelete = (event) => {
+    // [API POINT] Gọi API xóa event
     const updatedEvents = events.filter(ev => ev.id !== event.id);
     setEvents(updatedEvents);
     localStorage.setItem(calendarKey, JSON.stringify(updatedEvents));
@@ -226,6 +259,7 @@ export default function Calendar() {
     const jobType = formData.get('jobType');
 
     if (selectedEvent) {
+      // [API POINT] Gọi API cập nhật event
       // Chỉnh sửa: chỉ thay đổi giờ nếu input khác giờ gốc
       const oldStart = new Date(selectedEvent.start);
       const oldEnd = new Date(selectedEvent.end);
@@ -255,7 +289,7 @@ export default function Calendar() {
       setEvents(updatedEvents);
       localStorage.setItem(calendarKey, JSON.stringify(updatedEvents));
     } else {
-      // Thêm lịch mới
+      // [API POINT] Gọi API tạo event mới
       // Kiểm tra an toàn
       if (!startCell || !weekDates || typeof startCell.dayIndex !== 'number' || !weekDates[startCell.dayIndex]) {
         setAlertMessage('Không xác định được ngày đăng ký. Vui lòng chọn lại trên lịch!');
@@ -264,13 +298,12 @@ export default function Calendar() {
       }
       let dayIdx = startCell && endCell ? Math.min(startCell.dayIndex, endCell.dayIndex) : 0;
       let date = new Date(weekDates[dayIdx]);
-      // Đảm bảo ngày local, không bị lệch UTC
+      // [UPDATED] Đảm bảo ngày local, không bị lệch UTC
       const startDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
       const endDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-      let startHourIndex = getHourIndexFromDropdown(formData.get('start'));
-      let endHourIndex = getHourIndexFromDropdown(formData.get('end'));
-      let startHourValue = startHourIndex;
-      let endHourValue = endHourIndex;
+      // [UPDATED] Lấy giờ thực tế từ dropdown
+      let startHourValue = parseInt(formData.get('start').split(':')[0], 10);
+      let endHourValue = parseInt(formData.get('end').split(':')[0], 10);
       startDate.setHours(startHourValue, 0, 0, 0);
       endDate.setHours(endHourValue, 0, 0, 0);
       start = startDate.toISOString();
@@ -283,16 +316,25 @@ export default function Calendar() {
         end,
         description,
         location: formData.get('location') || '',
+        title: jobType,
       };
+
+      // [UPDATED] Kiểm tra xem đã có event nào trong ngày chưa
+      if (hasEventInDay(getLocalDateString(startDate))) {
+        setAlertMessage('Chỉ được đăng ký 1 công việc trong ngày!');
+        setOpenAlert(true);
+        return;
+      }
+      
       const updatedEvents = [...events, newEvent];
       setEvents(updatedEvents);
       localStorage.setItem(calendarKey, JSON.stringify(updatedEvents));
     }
     setShowForm(false);
-    setSelectedEvent(null);
+    setSelectedCells([]);
     setStartCell(null);
     setEndCell(null);
-    setSelectedCells([]);
+    setSelectedEvent(null);
   };
 
   const handleFormClose = () => {
@@ -655,13 +697,14 @@ export default function Calendar() {
                 })}
               </tr>
             </thead>
-            <tbody style={{ height: "100%" }}>
+            <tbody id="calendar-grid-body">
               {hours.map((hour, hourIndex) => (
-                <tr key={hourIndex}>
+                <tr key={hour}>
                   <td style={{ width: `${100 / (weekdays.length + 1)}%`, minWidth: 80, maxWidth: 120, height: 40, background: "#1874CD", fontWeight: "bold", textAlign: 'center', fontSize: 15, padding: 0, border: '1px solid #ccc', boxSizing: 'border-box', color: '#fff' }}>{hour}</td>
                   {weekdays.map((thu, dayIndex) => (
                     <td
                       key={dayIndex}
+                      id={`cell-${dayIndex}-${hourIndex}`}
                       style={{
                         width: `${100 / (weekdays.length + 1)}%`,
                         minWidth: 80,
@@ -754,7 +797,20 @@ export default function Calendar() {
                 setOpenAlert(true);
                 return;
               }
-              // Cập nhật event
+              setDragging(false);
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+
+              if (new Date(newDateStr) < today) {
+                setAlertMessage('Không thể di chuyển sự kiện vào quá khứ.');
+                setOpenAlert(true);
+                // Đặt lại vị trí của event về vị trí cũ trên UI
+                // (Thao tác này phức tạp, cách đơn giản hơn là không cập nhật state
+                // và để component tự render lại ở vị trí cũ)
+                return; // Không làm gì cả
+              }
+
+              // Cập nhật lại event trong state và localStorage
               const updatedEvent = { ...event, start: newStart.toISOString(), end: newEnd.toISOString() };
               const updatedEvents = filteredEvents.map(ev => ev.id === event.id ? updatedEvent : ev);
               setEvents(updatedEvents);
@@ -863,36 +919,7 @@ export default function Calendar() {
             {selectedEvent ? (
               editMode ? (
                 // Form sửa lịch
-                <form onSubmit={e => {
-                  e.preventDefault();
-                  const formData = new FormData(e.target);
-                  // Lấy giờ mới
-                  const startTime = formData.get('start'); // dạng HH:00
-                  const endTime = formData.get('end');
-                  // Lấy ngày cũ
-                  const oldStart = new Date(selectedEvent.start);
-                  const oldEnd = new Date(selectedEvent.end);
-                  // Gán giờ mới vào ngày cũ
-                  const [sh] = startTime.split(':');
-                  const [eh] = endTime.split(':');
-                  oldStart.setHours(Number(sh), 0, 0, 0);
-                  oldEnd.setHours(Number(eh), 0, 0, 0);
-                  // Lưu lại event
-                  const updatedEvent = {
-                    ...selectedEvent,
-                    start: oldStart.toISOString(),
-                    end: oldEnd.toISOString(),
-                    description: formData.get('description'),
-                    jobType: formData.get('jobType'),
-                    location: formData.get('location'),
-                  };
-                  const updatedEvents = events.map(ev => ev.id === selectedEvent.id ? updatedEvent : ev);
-                  setEvents(updatedEvents);
-                  localStorage.setItem(calendarKey, JSON.stringify(updatedEvents));
-                  setEditMode(false);
-                  setShowForm(false);
-                  setSelectedEvent(null);
-                }}>
+                <form onSubmit={handleUpdateEvent}>
                   <div style={{ marginBottom: '15px' }}>
                     <label style={{ display: 'block', marginBottom: '5px' }}>Thời gian bắt đầu</label>
                     <select

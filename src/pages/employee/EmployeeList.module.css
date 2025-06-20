@@ -201,3 +201,13 @@
 .avatarBelowFields {
   display: none;
 }
+.alertOnModal {
+  position: fixed;
+  top: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3000;
+  width: max-content;
+  min-width: 320px;
+  max-width: 90vw;
+}

@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Fade from '@mui/material/Fade';
@@ -13,7 +14,8 @@ const AlertPopup = ({ open, message, type = 'error', onClose, duration = 2500 })
         }
     }, [open, onClose, duration]);
 
-    return (
+    if (!open) return null;
+    return ReactDOM.createPortal(
         <Fade in={open} timeout={400} unmountOnExit>
             <Box
                 sx={{
@@ -21,7 +23,7 @@ const AlertPopup = ({ open, message, type = 'error', onClose, duration = 2500 })
                     top: 32,
                     left: '50%',
                     transform: 'translateX(-50%)',
-                    zIndex: 1400,
+                    zIndex: 3000,
                     minWidth: 320,
                     maxWidth: '80vw',
                 }}
@@ -30,7 +32,8 @@ const AlertPopup = ({ open, message, type = 'error', onClose, duration = 2500 })
                     {message}
                 </Alert>
             </Box>
-        </Fade>
+        </Fade>,
+        document.body
     );
 };
 
