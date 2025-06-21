@@ -29,6 +29,7 @@
   background: #1976d2 !important;
   color: #fff !important;
   font-weight: bold !important;
+  white-space: nowrap;
 }
 .filterBar {
   display: flex;

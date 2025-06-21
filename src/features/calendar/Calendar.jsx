@@ -86,9 +86,6 @@ export default function Calendar() {
   const [selectedCells, setSelectedCells] = useState([]);
   const [selectedJobType, setSelectedJobType] = useState('');
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [modalPos, setModalPos] = useState({ x: window.innerWidth / 2 - 180, y: window.innerHeight / 2 - 180 });
-  const [dragging, setDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [editStartHour, setEditStartHour] = useState('');
   const [editEndHour, setEditEndHour] = useState('');
   const [openAlert, setOpenAlert] = useState(false);
@@ -203,40 +200,6 @@ export default function Calendar() {
 
   const handleMouseUp = (e) => {
     if (isDragging && startCell && endCell) {
-      const dayIndex = startCell.dayIndex;
-      const startHour = Math.min(startCell.hourIndex, endCell.hourIndex);
-      const endHour = Math.max(startCell.hourIndex, endCell.hourIndex);
-
-      const firstCell = document.getElementById(`cell-${dayIndex}-${startHour}`);
-      const lastCell = document.getElementById(`cell-${dayIndex}-${endHour}`);
-      const gridBody = document.getElementById('calendar-grid-body'); // Lấy tbody qua ID
-      
-      if (firstCell && lastCell && gridBody) {
-        const firstRect = firstCell.getBoundingClientRect();
-        const lastRect = lastCell.getBoundingClientRect();
-        const gridBodyRect = gridBody.getBoundingClientRect();
-        
-        const selectionHeight = lastRect.bottom - firstRect.top;
-        
-        const formWidth = 360; 
-        const formHeight = 400;
-
-        let newX = firstRect.right + 15;
-        if (newX + formWidth > window.innerWidth - 10) {
-          newX = firstRect.left - formWidth - 15;
-        }
-
-        // Căn giữa form với vùng chọn
-        let newY = firstRect.top + (selectionHeight / 2) - (formHeight / 2);
-
-        // Ghim form vào trong ranh giới của tbody
-        newY = Math.max(newY, gridBodyRect.top); // Không cho vượt lên trên
-        newY = Math.min(newY, gridBodyRect.bottom - formHeight); // Không cho vượt xuống dưới
-
-        // Vì Draggable component được đặt ở root của trang, tọa độ này là tuyệt đối
-        setModalPos({ x: newX, y: newY });
-      }
-
       setIsDragging(false);
       setShowForm(true);
     }
@@ -254,31 +217,26 @@ export default function Calendar() {
   const handleUpdateEvent = (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
-    let start, end;
     const description = formData.get('description');
     const jobType = formData.get('jobType');
 
     if (selectedEvent) {
       // [API POINT] Gọi API cập nhật event
-      // Chỉnh sửa: chỉ thay đổi giờ nếu input khác giờ gốc
       const oldStart = new Date(selectedEvent.start);
       const oldEnd = new Date(selectedEvent.end);
-      const startHour = formData.get('startHour');
-      const endHour = formData.get('endHour');
-      if (startHour && startHour !== editStartHour) {
-        const [h, m] = startHour.split(':');
-        oldStart.setHours(Number(h), Number(m), 0, 0);
-      }
-      if (endHour && endHour !== editEndHour) {
-        const [h, m] = endHour.split(':');
-        oldEnd.setHours(Number(h), Number(m), 0, 0);
-      }
-      start = oldStart.toISOString().slice(0, 16);
-      end = oldEnd.toISOString().slice(0, 16);
+      const startHour = formData.get('start');
+      const endHour = formData.get('end');
+
+      const [startH, startM] = startHour.split(':');
+      oldStart.setHours(Number(startH), Number(startM), 0, 0);
+
+      const [endH, endM] = endHour.split(':');
+      oldEnd.setHours(Number(endH), Number(endM), 0, 0);
+      
       const updatedEvent = {
         ...selectedEvent,
-        start,
-        end,
+        start: oldStart.toISOString(),
+        end: oldEnd.toISOString(),
         description,
         jobType,
         location: formData.get('location') || '',
@@ -306,14 +264,12 @@ export default function Calendar() {
       let endHourValue = parseInt(formData.get('end').split(':')[0], 10);
       startDate.setHours(startHourValue, 0, 0, 0);
       endDate.setHours(endHourValue, 0, 0, 0);
-      start = startDate.toISOString();
-      end = endDate.toISOString();
       const newEvent = {
         id: Date.now(),
         userId: String(currentUser?.id),
         jobType,
-        start,
-        end,
+        start: startDate.toISOString(),
+        end: endDate.toISOString(),
         description,
         location: formData.get('location') || '',
         title: jobType,
@@ -394,34 +350,6 @@ export default function Calendar() {
       return cellDate >= start && cellDate <= end;
     });
   };
-
-  // Hàm bắt đầu kéo
-  const handleDragStart = (e) => {
-    setDragging(true);
-    const rect = e.target.closest('.draggable-modal').getBoundingClientRect();
-    setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-  };
-  // Hàm kéo
-  const handleDrag = (e) => {
-    if (!dragging) return;
-    setModalPos({ x: e.clientX - dragOffset.x, y: e.clientY - dragOffset.y });
-  };
-  // Hàm dừng kéo
-  const handleDragEnd = () => setDragging(false);
-
-  useEffect(() => {
-    if (dragging) {
-      window.addEventListener('mousemove', handleDrag);
-      window.addEventListener('mouseup', handleDragEnd);
-    } else {
-      window.removeEventListener('mousemove', handleDrag);
-      window.removeEventListener('mouseup', handleDragEnd);
-    }
-    return () => {
-      window.removeEventListener('mousemove', handleDrag);
-      window.removeEventListener('mouseup', handleDragEnd);
-    };
-  }, [dragging]);
 
   const calendarMatrix = getCalendarMatrix(month, year);
   const weekDates = getWeekDates(selectedDate);
@@ -797,7 +725,7 @@ export default function Calendar() {
                 setOpenAlert(true);
                 return;
               }
-              setDragging(false);
+              setIsDragging(false);
               const today = new Date();
               today.setHours(0, 0, 0, 0);
 
@@ -882,49 +810,193 @@ export default function Calendar() {
 
         {/* Form đăng ký/chỉnh sửa */}
         {showForm && (
-          <div
-            className="draggable-modal"
-            style={{
-              position: 'fixed',
-              top: modalPos.y,
-              left: modalPos.x,
-              background: 'white',
-              padding: '20px',
-              borderRadius: '8px',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-              zIndex: 1000,
-              minWidth: '300px',
-              cursor: dragging ? 'move' : 'default',
-              userSelect: 'none',
-            }}
-          >
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}>
             <div
-              style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', cursor: 'move' }}
-              onMouseDown={handleDragStart}
+              className="modal-content"
+              style={{
+                background: 'white',
+                padding: '20px',
+                borderRadius: '8px',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.25)',
+                width: '90%',
+                maxWidth: '450px',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+              }}
             >
-              <h3 style={{ margin: 0 }}>{selectedEvent ? (editMode ? 'Sửa lịch' : 'Chi tiết lịch') : 'Đăng ký lịch'}</h3>
-              <button
-                onClick={handleFormClose}
-                style={{
-                  border: 'none',
-                  background: 'none',
-                  fontSize: '20px',
-                  cursor: 'pointer',
-                  padding: '0 5px'
-                }}
+              <div
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}
               >
-                ×
-              </button>
-            </div>
-            {selectedEvent ? (
-              editMode ? (
-                // Form sửa lịch
+                <h3 style={{ margin: 0, fontSize: '1.25rem' }}>{selectedEvent ? (editMode ? 'Sửa lịch' : 'Chi tiết lịch') : 'Đăng ký lịch'}</h3>
+                <button
+                  onClick={handleFormClose}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    fontSize: '24px',
+                    cursor: 'pointer',
+                    padding: '0',
+                    lineHeight: '1',
+                    color: '#888'
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+              {selectedEvent ? (
+                editMode ? (
+                  // Form sửa lịch
+                  <form onSubmit={handleUpdateEvent}>
+                    <div style={{ marginBottom: '15px' }}>
+                      <label style={{ display: 'block', marginBottom: '5px' }}>Thời gian bắt đầu</label>
+                      <select
+                        name="start"
+                        defaultValue={new Date(selectedEvent.start).getHours().toString().padStart(2, '0') + ':00'}
+                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: 16 }}
+                        required
+                      >
+                        {hourOptions.map(h => <option key={h} value={h}>{h}</option>)}
+                      </select>
+                    </div>
+                    <div style={{ marginBottom: '15px' }}>
+                      <label style={{ display: 'block', marginBottom: '5px' }}>Thời gian kết thúc</label>
+                      <select
+                        name="end"
+                        defaultValue={new Date(selectedEvent.end).getHours().toString().padStart(2, '0') + ':00'}
+                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: 16 }}
+                        required
+                      >
+                        {endHourOptions.map(h => <option key={h} value={h}>{h}</option>)}
+                      </select>
+                    </div>
+                    <div style={{ marginBottom: '15px' }}>
+                      <label style={{ display: 'block', marginBottom: '5px' }}>Địa điểm</label>
+                      <FormControl fullWidth>
+                        <InputLabel id="office-edit-label">Chọn địa điểm</InputLabel>
+                        <Select
+                          labelId="office-edit-label"
+                          name="location"
+                          defaultValue={selectedEvent.location || ''}
+                          label="Chọn địa điểm"
+                          required
+                        >
+                          <MenuItem value="">-- Chọn địa điểm --</MenuItem>
+                          {offices.map((of, idx) => (
+                            <MenuItem key={idx} value={of}>{of}</MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </div>
+                    <div style={{ marginBottom: '15px' }}>
+                      <label style={{ display: 'block', marginBottom: '5px' }}>Mô tả</label>
+                      <textarea
+                        name="description"
+                        defaultValue={selectedEvent.description || ''}
+                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', minHeight: '100px' }}
+                      />
+                    </div>
+                    <FormControl fullWidth sx={{ mb: 2 }}>
+                      <InputLabel id="jobtype-label">Loại công việc</InputLabel>
+                      <Select
+                        labelId="jobtype-label"
+                        name="jobType"
+                        value={selectedEvent.jobType}
+                        label="Loại công việc"
+                        onChange={e => setSelectedEvent({ ...selectedEvent, jobType: e.target.value })}
+                      >
+                        {jobTypes.map((type) => (
+                          <MenuItem key={type.id} value={type.name}>{type.name}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button
+                        type="submit"
+                        style={{ flex: 1, background: '#007bff', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer' }}
+                      >
+                        Lưu
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  // Form xem chi tiết lịch
+                  <>
+                    <form>
+                      <div style={{ marginBottom: '15px' }}>
+                        <label style={{ display: 'block', marginBottom: '5px' }}>Thời gian bắt đầu</label>
+                        <input
+                          type="text"
+                          value={new Date(selectedEvent.start).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                          readOnly
+                          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', background: '#f5f5f5' }}
+                        />
+                      </div>
+                      <div style={{ marginBottom: '15px' }}>
+                        <label style={{ display: 'block', marginBottom: '5px' }}>Thời gian kết thúc</label>
+                        <input
+                          type="text"
+                          value={new Date(selectedEvent.end).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })}
+                          readOnly
+                          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', background: '#f5f5f5' }}
+                        />
+                      </div>
+                      <div style={{ marginBottom: '15px' }}>
+                        <label style={{ display: 'block', marginBottom: '5px' }}>Địa điểm</label>
+                        <input
+                          type="text"
+                          value={selectedEvent.location || ''}
+                          readOnly
+                          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', background: '#f5f5f5' }}
+                        />
+                      </div>
+                      <div style={{ marginBottom: '15px' }}>
+                        <label style={{ display: 'block', marginBottom: '5px' }}>Mô tả</label>
+                        <textarea
+                          value={selectedEvent.description || ''}
+                          readOnly
+                          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', minHeight: '100px', background: '#f5f5f5' }}
+                        />
+                      </div>
+                      <div style={{ marginBottom: '15px' }}>
+                        <label style={{ display: 'block', marginBottom: '5px' }}>Loại công việc</label>
+                        <input
+                          type="text"
+                          value={selectedEvent.jobType}
+                          readOnly
+                          style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', background: '#f5f5f5' }}
+                        />
+                      </div>
+                    </form>
+                    <div style={{ display: 'flex', gap: '10px', marginTop: 8 }}>
+                      <button
+                        type="button"
+                        onClick={() => setEditMode(true)}
+                        style={{ flex: 1, background: '#007bff', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer' }}
+                      >
+                        Sửa
+                      </button>
+                    </div>
+                  </>
+                )
+              ) : (
+                // Form cho event mới (đăng ký lịch)
                 <form onSubmit={handleUpdateEvent}>
                   <div style={{ marginBottom: '15px' }}>
                     <label style={{ display: 'block', marginBottom: '5px' }}>Thời gian bắt đầu</label>
                     <select
                       name="start"
-                      defaultValue={new Date(selectedEvent.start).getHours().toString().padStart(2, '0') + ':00'}
+                      defaultValue={getSelectedTimeRange().start ? new Date(getSelectedTimeRange().start).getHours().toString().padStart(2, '0') + ':00' : '07:00'}
                       style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: 16 }}
                       required
                     >
@@ -935,7 +1007,7 @@ export default function Calendar() {
                     <label style={{ display: 'block', marginBottom: '5px' }}>Thời gian kết thúc</label>
                     <select
                       name="end"
-                      defaultValue={new Date(selectedEvent.end).getHours().toString().padStart(2, '0') + ':00'}
+                      defaultValue={getSelectedTimeRange().end ? new Date(getSelectedTimeRange().end).getHours().toString().padStart(2, '0') + ':00' : '08:00'}
                       style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: 16 }}
                       required
                     >
@@ -945,11 +1017,11 @@ export default function Calendar() {
                   <div style={{ marginBottom: '15px' }}>
                     <label style={{ display: 'block', marginBottom: '5px' }}>Địa điểm</label>
                     <FormControl fullWidth>
-                      <InputLabel id="office-edit-label">Chọn địa điểm</InputLabel>
+                      <InputLabel id="office-create-label">Chọn địa điểm</InputLabel>
                       <Select
-                        labelId="office-edit-label"
+                        labelId="office-create-label"
                         name="location"
-                        defaultValue={selectedEvent.location || ''}
+                        defaultValue=""
                         label="Chọn địa điểm"
                         required
                       >
@@ -964,7 +1036,6 @@ export default function Calendar() {
                     <label style={{ display: 'block', marginBottom: '5px' }}>Mô tả</label>
                     <textarea
                       name="description"
-                      defaultValue={selectedEvent.description || ''}
                       style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', minHeight: '100px' }}
                     />
                   </div>
@@ -973,9 +1044,10 @@ export default function Calendar() {
                     <Select
                       labelId="jobtype-label"
                       name="jobType"
-                      value={selectedEvent.jobType}
+                      value={selectedJobType}
                       label="Loại công việc"
-                      onChange={e => setSelectedEvent({ ...selectedEvent, jobType: e.target.value })}
+                      onChange={e => setSelectedJobType(e.target.value)}
+                      required
                     >
                       {jobTypes.map((type) => (
                         <MenuItem key={type.id} value={type.name}>{type.name}</MenuItem>
@@ -987,156 +1059,12 @@ export default function Calendar() {
                       type="submit"
                       style={{ flex: 1, background: '#007bff', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer' }}
                     >
-                      Lưu
+                      Đăng ký
                     </button>
                   </div>
                 </form>
-              ) : (
-                // Form xem chi tiết lịch
-                <>
-                  <form>
-                    <div style={{ marginBottom: '15px' }}>
-                      <label style={{ display: 'block', marginBottom: '5px' }}>Thời gian bắt đầu</label>
-                      <input
-                        type="text"
-                        value={new Date(selectedEvent.start).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
-                        readOnly
-                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', background: '#f5f5f5' }}
-                      />
-                    </div>
-                    <div style={{ marginBottom: '15px' }}>
-                      <label style={{ display: 'block', marginBottom: '5px' }}>Thời gian kết thúc</label>
-                      <input
-                        type="text"
-                        value={new Date(selectedEvent.end).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
-                        readOnly
-                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', background: '#f5f5f5' }}
-                      />
-                    </div>
-                    <div style={{ marginBottom: '15px' }}>
-                      <label style={{ display: 'block', marginBottom: '5px' }}>Địa điểm</label>
-                      <FormControl fullWidth>
-                        <InputLabel id="office-detail-label">Chọn địa điểm</InputLabel>
-                        <Select
-                          labelId="office-detail-label"
-                          value={selectedEvent.location || ''}
-                          label="Chọn địa điểm"
-                          disabled
-                        >
-                          <MenuItem value="">-- Chọn địa điểm --</MenuItem>
-                          {offices.map((of, idx) => (
-                            <MenuItem key={idx} value={of}>{of}</MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </div>
-                    <div style={{ marginBottom: '15px' }}>
-                      <label style={{ display: 'block', marginBottom: '5px' }}>Mô tả</label>
-                      <textarea
-                        value={selectedEvent.description || ''}
-                        readOnly
-                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', minHeight: '100px', background: '#f5f5f5' }}
-                      />
-                    </div>
-                    <FormControl fullWidth sx={{ mb: 2 }}>
-                      <InputLabel id="jobtype-label">Loại công việc</InputLabel>
-                      <Select
-                        labelId="jobtype-label"
-                        value={selectedEvent.jobType}
-                        label="Loại công việc"
-                        readOnly
-                        disabled
-                      >
-                        <MenuItem value={selectedEvent.jobType}>{selectedEvent.jobType}</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </form>
-                  <div style={{ display: 'flex', gap: '10px', marginTop: 8 }}>
-                    <button
-                      type="button"
-                      onClick={() => setEditMode(true)}
-                      style={{ flex: 1, background: '#007bff', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer' }}
-                    >
-                      Sửa
-                    </button>
-                  </div>
-                </>
-              )
-            ) : (
-              // Form cho event mới (đăng ký lịch)
-              <form onSubmit={handleUpdateEvent}>
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px' }}>Thời gian bắt đầu</label>
-                  <select
-                    name="start"
-                    defaultValue={getSelectedTimeRange().start ? new Date(getSelectedTimeRange().start).getHours().toString().padStart(2, '0') + ':00' : '07:00'}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: 16 }}
-                    required
-                  >
-                    {hourOptions.map(h => <option key={h} value={h}>{h}</option>)}
-                  </select>
-                </div>
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px' }}>Thời gian kết thúc</label>
-                  <select
-                    name="end"
-                    defaultValue={getSelectedTimeRange().end ? new Date(getSelectedTimeRange().end).getHours().toString().padStart(2, '0') + ':00' : '08:00'}
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', fontSize: 16 }}
-                    required
-                  >
-                    {endHourOptions.map(h => <option key={h} value={h}>{h}</option>)}
-                  </select>
-                </div>
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px' }}>Địa điểm</label>
-                  <FormControl fullWidth>
-                    <InputLabel id="office-create-label">Chọn địa điểm</InputLabel>
-                    <Select
-                      labelId="office-create-label"
-                      name="location"
-                      defaultValue=""
-                      label="Chọn địa điểm"
-                      required
-                    >
-                      <MenuItem value="">-- Chọn địa điểm --</MenuItem>
-                      {offices.map((of, idx) => (
-                        <MenuItem key={idx} value={of}>{of}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </div>
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px' }}>Mô tả</label>
-                  <textarea
-                    name="description"
-                    style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', minHeight: '100px' }}
-                  />
-                </div>
-                <FormControl fullWidth sx={{ mb: 2 }}>
-                  <InputLabel id="jobtype-label">Loại công việc</InputLabel>
-                  <Select
-                    labelId="jobtype-label"
-                    name="jobType"
-                    value={selectedJobType}
-                    label="Loại công việc"
-                    onChange={e => setSelectedJobType(e.target.value)}
-                    required
-                  >
-                    {jobTypes.map((type) => (
-                      <MenuItem key={type.id} value={type.name}>{type.name}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button
-                    type="submit"
-                    style={{ flex: 1, background: '#007bff', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    Đăng ký
-                  </button>
-                </div>
-              </form>
-            )}
+              )}
+            </div>
           </div>
         )}
       </div>
