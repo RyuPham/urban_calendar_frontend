@@ -35,7 +35,7 @@ const authSlice = createSlice({
           id: user.id,
           username: user.username,
           email: user.email,
-          role: user.role || 'user',
+          role: (user.accountRole === 'admin' ? 'Admin' : user.accountRole === 'user' ? 'User' : user.role || 'User'),
           name: user.name
         };
         state.token = 'mock-jwt-token';

@@ -116,7 +116,7 @@ const ProfileModal = ({ open, onClose }) => {
                                         <div className={styles.profileInfoValue}>{employee.office}</div>
                                     </div>
                                     <div>
-                                        <div className={styles.profileInfoLabel}>Vai trò</div>
+                                        <div className={styles.profileInfoLabel}>Chức vụ</div>
                                         <div className={styles.profileInfoValue}>{employee.role}</div>
                                     </div>
                                 </div>

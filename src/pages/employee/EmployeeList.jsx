@@ -26,6 +26,7 @@ import companies from '../admin/CompanyManagement';
 import stylesProfile from './ProfileModal.module.css';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import axios from 'axios';
+import chucvu from '../admin/ChucvuManagement';
 
 // Mock data nhân viên
 const mockEmployees = [
@@ -232,6 +233,7 @@ const initialEmployeeState = {
   office: '',
   role: '',
   avatar: '',
+  accountRole: '',
 };
 
 const EmployeeTable = () => {
@@ -247,7 +249,7 @@ const EmployeeTable = () => {
   const [hoveredRow, setHoveredRow] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [roles, setRoles] = useState([]);
+  const [roles, setRoles] = useState(chucvu);
   const [newEmployee, setNewEmployee] = useState(initialEmployeeState);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -279,30 +281,14 @@ const EmployeeTable = () => {
   // Lấy dữ liệu cho trang hiện tại
   const paginated = filtered.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
-  // Khi mount, lấy dữ liệu từ localStorage nếu có, nếu không thì lấy mock
+  // Lấy dữ liệu nhân viên từ local storage khi component mount
   useEffect(() => {
-    const data = localStorage.getItem(EMPLOYEE_KEY);
-    if (data) {
-      setEmployees(JSON.parse(data));
-    } else {
-      setEmployees(mockEmployees);
-      localStorage.setItem(EMPLOYEE_KEY, JSON.stringify(mockEmployees));
+    const storedEmployees = JSON.parse(localStorage.getItem(EMPLOYEE_KEY));
+    if (storedEmployees) {
+      setEmployees(storedEmployees);
     }
   }, []);
 
-  useEffect(() => {
-    const data = localStorage.getItem('roles');
-    if (data) setRoles(JSON.parse(data));
-  }, []);
-
-  // Khi employees thay đổi, lưu lại vào localStorage
-  useEffect(() => {
-    if (employees.length > 0) {
-      localStorage.setItem(EMPLOYEE_KEY, JSON.stringify(employees));
-    }
-  }, [employees]);
-
-  // Đảm bảo reset form khi modal đóng
   useEffect(() => {
     if (!isModalOpen) {
       setNewEmployee(initialEmployeeState);
@@ -494,13 +480,13 @@ const EmployeeTable = () => {
       </div>
       {/* Bộ lọc */}
       <div className={styles.filterBar}>
-        {/* [UPDATED] Dropdown lọc vai trò */}
+        {/* [UPDATED] Dropdown Chức vụ */}
         <select
           value={roleFilter}
           onChange={e => setRoleFilter(e.target.value)}
           className={styles.filterSelect}
         >
-          <option value="">-- Lọc vai trò --</option>
+          <option value="">-- Chức vụ --</option>
           {roles.map((role, idx) => (
             <option key={idx} value={role.name}>{role.name}</option>
           ))}
@@ -510,7 +496,7 @@ const EmployeeTable = () => {
           onChange={e => setOfficeFilter(e.target.value)}
           className={styles.filterSelect}
         >
-          <option value="">-- Lọc địa điểm --</option>
+          <option value="">-- Trụ sở --</option>
           {offices.map((of, idx) => (
             <option key={idx} value={of}>{of}</option>
           ))}
@@ -527,7 +513,7 @@ const EmployeeTable = () => {
       <div className={styles.tableHeaderRow}>
         <div className={styles.tableHeaderCell}>STT</div>
         <div className={styles.tableHeaderCell}>Tên</div>
-        <div className={styles.tableHeaderCell}>Vai trò</div>
+        <div className={styles.tableHeaderCell}>Chức vụ</div>
         <div className={styles.tableHeaderCell}>Trụ sở</div>
       </div>
         {/* Table Body */}
@@ -541,7 +527,7 @@ const EmployeeTable = () => {
           <div className={styles.tableCell}>{emp.name}</div>
           <div className={styles.tableCell}>
             {(() => {
-              // Tìm vai trò theo tên hoặc id (nếu cần)
+              // Tìm chức vụ theo tên hoặc id (nếu cần)
               const foundRole = roles.find(r => r.name === emp.role || r.id === emp.role);
               return foundRole ? foundRole.name : emp.role || '';
             })()}
@@ -650,16 +636,28 @@ const EmployeeTable = () => {
             </Select>
           </FormControl>
               <FormControl fullWidth className={styles.addFormField}>
-            <InputLabel id="role-label">Vai trò</InputLabel>
+            <InputLabel id="role-label">Chức vụ</InputLabel>
             <Select
               labelId="role-label"
               value={newEmployee.role}
-              label="Vai trò"
+              label="Chức vụ"
               onChange={e => setNewEmployee({ ...newEmployee, role: e.target.value })}
             >
               {roles.map((role) => (
                 <MenuItem key={role.id} value={role.name}>{role.name}</MenuItem>
               ))}
+            </Select>
+          </FormControl>
+          <FormControl fullWidth className={styles.addFormField}>
+            <InputLabel id="account-role-label">Vai trò</InputLabel>
+            <Select
+              labelId="account-role-label"
+              value={newEmployee.accountRole}
+              label="Vai trò tài khoản"
+              onChange={e => setNewEmployee({ ...newEmployee, accountRole: e.target.value })}
+            >
+              <MenuItem value="admin">Admin</MenuItem>
+              <MenuItem value="user">User</MenuItem>
             </Select>
           </FormControl>
               <div className={styles.modalActions}>
@@ -764,11 +762,11 @@ const EmployeeTable = () => {
                 </Select>
               </FormControl>
                     <FormControl fullWidth className={styles.addFormField}>
-                      <InputLabel id="role-label-edit">Vai trò</InputLabel>
+                      <InputLabel id="role-label-edit">Chức vụ</InputLabel>
                       <Select
                         labelId="role-label-edit"
                         value={editEmployee.role}
-                        label="Vai trò"
+                        label="Chức vụ"
                         onChange={e => setEditEmployee({ ...editEmployee, role: e.target.value })}
                       >
                         {roles.map((role) => (
@@ -823,10 +821,10 @@ const EmployeeTable = () => {
                         <div className={stylesProfile.profileInfoValue}>{selectedEmployee.office}</div>
                       </div>
                       <div>
-                        <div className={stylesProfile.profileInfoLabel}>Vai trò</div>
+                        <div className={stylesProfile.profileInfoLabel}>Chức vụ</div>
                         <div className={stylesProfile.profileInfoValue}>
                           {(() => {
-                            // Tìm vai trò theo tên hoặc id (nếu cần)
+                            // Tìm chức vụ theo tên hoặc id (nếu cần)
                             const foundRole = roles.find(r => r.name === selectedEmployee.role || r.id === selectedEmployee.role);
                             return foundRole ? foundRole.name : selectedEmployee.role || '';
                           })()}
