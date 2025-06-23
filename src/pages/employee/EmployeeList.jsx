@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -18,12 +18,14 @@ import {
   Search,
   ArrowBackIos,
   ArrowForwardIos,
+  CloudUpload as CloudUploadIcon,
 } from '@mui/icons-material';
 import AlertPopup from '../../components/common/AlertPopup';
 import styles from './EmployeeList.module.css';
 import companies from '../admin/CompanyManagement';
 import stylesProfile from './ProfileModal.module.css';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import axios from 'axios';
 
 // Mock data nhân viên
 const mockEmployees = [
@@ -220,6 +222,18 @@ const mockEmployees = [
 
 const EMPLOYEE_KEY = 'employees';
 
+const initialEmployeeState = {
+  name: '',
+  username: '',
+  password: '',
+  email: '',
+  phone: '',
+  startdate: new Date().toISOString().slice(0, 10),
+  office: '',
+  role: '',
+  avatar: '',
+};
+
 const EmployeeTable = () => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -232,18 +246,9 @@ const EmployeeTable = () => {
   // State quản lý hover
   const [hoveredRow, setHoveredRow] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [roles, setRoles] = useState([]);
-  const [newEmployee, setNewEmployee] = useState({
-    name: '',
-    username: '',
-    password: '',
-    email: '',
-    phone: '',
-    startdate: '',
-    office: '',
-    role: '',
-    avatar: null,
-  });
+  const [newEmployee, setNewEmployee] = useState(initialEmployeeState);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -252,6 +257,7 @@ const EmployeeTable = () => {
   const [alertMessage, setAlertMessage] = useState('');
   const [avatarPreview, setAvatarPreview] = useState('');
   const [openConfirm, setOpenConfirm] = useState(false);
+  const fileInputRef = useRef(null);
 
   const offices = companies.map(c => c.name);
 
@@ -299,16 +305,7 @@ const EmployeeTable = () => {
   // Đảm bảo reset form khi modal đóng
   useEffect(() => {
     if (!isModalOpen) {
-      setNewEmployee({
-        name: '',
-        password: '',
-        email: '',
-        phone: '',
-        startdate: '',
-        office: '',
-        role: '',
-        avatar: null,
-      });
+      setNewEmployee(initialEmployeeState);
       setAvatarPreview('');
     }
   }, [isModalOpen]);
@@ -321,22 +318,15 @@ const EmployeeTable = () => {
   };
 
   const handleAddEmployee = () => {
+    setNewEmployee(initialEmployeeState);
+    setAvatarPreview(null);
     setIsModalOpen(true);
-    setNewEmployee({
-      name: '',
-      password: '',
-      email: '',
-      phone: '',
-      startdate: new Date().toISOString().slice(0, 10),
-      office: '',
-      role: '',
-      avatar: null,
-    });
-    setAvatarPreview('');
   };
 
   const handleModalClose = () => {
     setIsModalOpen(false);
+    setNewEmployee(initialEmployeeState);
+    setAvatarPreview(null);
   };
 
   const handleModalSave = () => {
@@ -367,18 +357,37 @@ const EmployeeTable = () => {
       return;
     }
     const newId = employees.length > 0 ? Math.max(...employees.map(e => e.id)) + 1 : 1;
-    setEmployees(prev => [...prev, { ...newEmployee, id: newId, avatar: newEmployee.avatar || null }]);
+    const updatedEmployees = [...employees, { ...newEmployee, id: newId, status: 'Đang làm việc' }];
+    localStorage.setItem(EMPLOYEE_KEY, JSON.stringify(updatedEmployees));
+    setEmployees(updatedEmployees);
     setIsModalOpen(false);
+    setNewEmployee(initialEmployeeState);
+    setAvatarPreview(null);
   };
 
-  const handleAvatarChange = (e) => {
+  const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatarPreview(reader.result);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'upload_urban');
+
+    try {
+      const response = await axios.post(
+        'https://api.cloudinary.com/v1_1/dp17vdzvm/image/upload',
+        formData
+      );
+      const imageUrl = response.data.secure_url;
+      setNewEmployee({ ...newEmployee, avatar: imageUrl });
+      setAvatarPreview(imageUrl);
+    } catch (error) {
+      console.error('Lỗi upload ảnh lên Cloudinary:', error);
+      setAlertMessage('Tải ảnh lên thất bại. Vui lòng thử lại.');
+      setOpenAlert(true);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -439,6 +448,35 @@ const EmployeeTable = () => {
       localStorage.setItem(EMPLOYEE_KEY, JSON.stringify(updatedEmployees));
       setDetailModalOpen(false);
     setOpenConfirm(false);
+  };
+
+  const handleImageUpload = async (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', 'upload_urban'); // TODO: Replace with your upload preset
+
+        try {
+            const response = await axios.post(
+                'https://api.cloudinary.com/v1_1/dp17vdzvm/image/upload', // TODO: Replace with your cloud name
+                formData
+            );
+            if (isModalOpen) {
+              setNewEmployee({ ...newEmployee, avatar: response.data.secure_url });
+            } else if (isEditMode) {
+              setEditEmployee({ ...editEmployee, avatar: response.data.secure_url });
+            }
+        } catch (error) {
+            setAlertMessage('Lỗi tải ảnh lên!');
+            setOpenAlert(true);
+            console.error('Error uploading image: ', error);
+        }
+    }
+  };
+
+  const handleAvatarClick = () => {
+      fileInputRef.current.click();
   };
 
   return (
@@ -538,10 +576,25 @@ const EmployeeTable = () => {
                 ) : (
                   <img src="https://via.placeholder.com/240x300?text=Avatar" alt="Avatar" className={styles.avatarRect} />
                 )}
-                <label className={styles.avatarButton}>
-                  Chọn ảnh đại diện
-                  <input type="file" accept="image/*" hidden onChange={handleAvatarChange} />
-                </label>
+                <Box className={styles.avatarUploadSection}>
+                  <input
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    id="raised-button-file"
+                    type="file"
+                    onChange={handleAvatarChange}
+                  />
+                  <label htmlFor="raised-button-file">
+                    <Button
+                      variant="contained"
+                      component="span"
+                      startIcon={<CloudUploadIcon />}
+                      disabled={isUploading}
+                    >
+                      {isUploading ? 'Đang tải lên...' : 'Tải ảnh lên'}
+                    </Button>
+                  </label>
+                </Box>
               </div>
             </div>
             <div className={styles.addFormRight}>
@@ -612,16 +665,7 @@ const EmployeeTable = () => {
               <div className={styles.modalActions}>
                 <Button onClick={() => {
                   setIsModalOpen(false);
-                  setNewEmployee({
-                    name: '',
-                    password: '',
-                    email: '',
-                    phone: '',
-                    startdate: '',
-                    office: '',
-                    role: '',
-                    avatar: null,
-                  });
+                  setNewEmployee(initialEmployeeState);
                   setAvatarPreview('');
                 }}>Huỷ</Button>
             <Button variant="contained" onClick={handleModalSave}>Lưu</Button>
@@ -646,14 +690,28 @@ const EmployeeTable = () => {
                       )}
                       <label className={styles.avatarButton}>
                         Chọn ảnh đại diện
-                        <input type="file" accept="image/*" hidden onChange={e => {
+                        <input type="file" accept="image/*" hidden onChange={async (e) => {
                           const file = e.target.files[0];
                           if (file) {
-                            const reader = new FileReader();
-                            reader.onloadend = () => {
-                              setEditEmployee({ ...editEmployee, avatar: reader.result });
-                            };
-                            reader.readAsDataURL(file);
+                            setIsUploading(true);
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            formData.append('upload_preset', 'upload_urban');
+
+                            try {
+                              const response = await axios.post(
+                                'https://api.cloudinary.com/v1_1/dp17vdzvm/image/upload',
+                                formData
+                              );
+                              const imageUrl = response.data.secure_url;
+                              setEditEmployee({ ...editEmployee, avatar: imageUrl });
+                            } catch (error) {
+                              console.error('Lỗi upload ảnh lên Cloudinary:', error);
+                              setAlertMessage('Tải ảnh lên thất bại. Vui lòng thử lại.');
+                              setOpenAlert(true);
+                            } finally {
+                              setIsUploading(false);
+                            }
                           }
                         }} />
                       </label>
