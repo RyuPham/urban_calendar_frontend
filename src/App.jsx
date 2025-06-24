@@ -18,6 +18,7 @@ import Profile from './pages/employee/Profile';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminScheduleTable from './features/calendar/AdminScheduleTable';
 import ChangePassword from './pages/auth/ChangePassword.jsx';
+import Forgotpass from './pages/auth/Forgotpass';
 
 const App = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -85,6 +86,7 @@ const App = () => {
             } />
             <Route path="/profile" element={<Profile />} />
             <Route path="/change-password" element={<ChangePassword />} />
+            <Route path="/auth/forgotpass" element={<Forgotpass />} />
           </Route>
           <Route path="/login" element={<Login />} />   
 

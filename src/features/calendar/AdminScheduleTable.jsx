@@ -74,17 +74,10 @@ const AdminScheduleTable = () => {
   const [employees, setEmployees] = useState([]);
   const [roleFilter, setRoleFilter] = useState('');
   const [officeFilter, setOfficeFilter] = useState('');
-  const [roles, setRoles] = useState([]);
+  const [roles, setRoles] = useState(chucvu);
   const [offices, setOffices] = useState([]);
 
-  // [API POINT] Lấy danh sách vai trò từ API
   useEffect(() => {
-    const data = localStorage.getItem('roles');
-    if (data) {
-      setRoles(JSON.parse(data));
-    } else {
-      setRoles([]);
-    }
     // [API POINT] Lấy danh sách công ty từ API
     setOffices(companies.map(c => c.name));
   }, []);
@@ -125,6 +118,25 @@ const AdminScheduleTable = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <div className={styles.title}>Lịch làm việc nhân viên (theo tuần)</div>
+        {/* Legend section */}
+        <div className={styles.legend}>
+          <div className={styles.legendItem}>
+            <span className={`${styles.legendColor} ${styles.legendCongTac}`}></span>
+            <span>Công tác</span>
+          </div>
+          <div className={styles.legendItem}>
+            <span className={`${styles.legendColor} ${styles.legendRaNgoai}`}></span>
+            <span>Ra ngoài gặp khách hàng</span>
+          </div>
+          <div className={styles.legendItem}>
+            <span className={`${styles.legendColor} ${styles.legendLamViecTuXa}`}></span>
+            <span>Làm việc từ xa / tại nhà</span>
+          </div>
+          <div className={styles.legendItem}>
+            <span className={`${styles.legendColor} ${styles.legendNghiPhep}`}></span>
+            <span>Nghỉ phép có lương</span>
+          </div>
+        </div>
         <div className={styles.headerBar}>
           <div className={styles.headerBarLeft}>
             <IconButton size="small" onClick={() => setCurrentDate(d => { const nd = new Date(d); nd.setDate(d.getDate() - 7); return nd; })} style={{ border: '1px solid #1976d2', color: '#1976d2' }}>{'<'}</IconButton>
@@ -137,9 +149,9 @@ const AdminScheduleTable = () => {
               onChange={e => setRoleFilter(e.target.value)}
               className={styles.filterSelect}
             >
-              <option value="">-- Lọc vai trò --</option>
+              <option value="">-- Chức vụ --</option>
               {roles.map((role, idx) => (
-                <option key={idx} value={role.name}>{role.name}</option>
+                <option key={role.id} value={role.name}>{role.name}</option>
               ))}
             </select>
             <select
@@ -147,7 +159,7 @@ const AdminScheduleTable = () => {
               onChange={e => setOfficeFilter(e.target.value)}
               className={styles.filterSelect}
             >
-              <option value="">-- Lọc địa điểm --</option>
+              <option value="">-- Trụ sở --</option>
               {offices.map((of, idx) => (
                 <option key={idx} value={of}>{of}</option>
               ))}

@@ -199,3 +199,49 @@ table {
   gap: 12px;
   align-items: center;
 }
+.legend {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin: 4px 0 8px 0;
+}
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.legendColor {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  margin-right: 4px;
+}
+.legendCongTac { background: #000080; }
+.legendRaNgoai { background: #3a7d82; }
+.legendLamViecTuXa { background: #823f3a; }
+.legendNghiPhep { background: #525252; }
+
+.tableHeaderCell {
+  vertical-align: middle;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+.tableHeaderCellContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-weight: bold;
+  font-size: 16px;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+}
+.tableHeaderCellDate {
+  font-size: 11px;
+  color: #fff;
+  margin: 0;
+  padding: 0;
+  line-height: 1;
+  transform: translateY(-2px);
+}

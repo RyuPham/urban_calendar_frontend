@@ -15,7 +15,7 @@ import { login, clearError } from '../../features/auth/authSlice';
 import logo from '../../assets/images/urban-logo.png';
 
 const validationSchema = Yup.object({
-  username: Yup.string().required('Username or Email is required'),
+  username: Yup.string().required('Email is required'),
   password: Yup.string().required('Password is required'),
 });
 
@@ -84,7 +84,7 @@ const Login = () => {
             fullWidth
             id="username"
             name="username"
-            label="Username or Email"
+            label="Email"
             value={formik.values.username}
             onChange={formik.handleChange}
             error={formik.touched.username && Boolean(formik.errors.username)}
@@ -112,11 +112,14 @@ const Login = () => {
             type="submit"
             sx={{ mt: 3 }}
           >
-            Login
+            LOGIN
           </Button>
         </form>
-
-
+        <Box sx={{ mt: 2, textAlign: 'right' }}>
+          <Button variant="text" size="small" onClick={() => navigate('/auth/forgotpass')}>
+            Quên password?
+          </Button>
+        </Box>
       </Paper>
     </Box>
   );

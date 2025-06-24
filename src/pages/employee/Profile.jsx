@@ -75,7 +75,7 @@ const Profile = () => {
                         </Box>
                         <TextField label="Họ tên" fullWidth sx={{ mb: 2 }} value={editEmployee.name} onChange={e => setEditEmployee({ ...editEmployee, name: e.target.value })} />
                         <TextField label="Số điện thoại" fullWidth sx={{ mb: 2 }} value={editEmployee.phone} onChange={e => setEditEmployee({ ...editEmployee, phone: e.target.value })} />
-                        <FormControl fullWidth sx={{ mb: 2 }}>
+                        {/* <FormControl fullWidth sx={{ mb: 2 }}>
                             <InputLabel id="gender-label">Giới tính</InputLabel>
                             <Select
                                 labelId="gender-label"
@@ -87,7 +87,7 @@ const Profile = () => {
                                 <MenuItem value="Nữ">Nữ</MenuItem>
                                 <MenuItem value="Khác">Khác</MenuItem>
                             </Select>
-                        </FormControl>
+                        </FormControl> */}
                         <TextField label="Địa chỉ" fullWidth sx={{ mb: 2 }} value={editEmployee.address} onChange={e => setEditEmployee({ ...editEmployee, address: e.target.value })} />
                         <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
                             <Button variant="contained" onClick={handleSave}>Lưu</Button>

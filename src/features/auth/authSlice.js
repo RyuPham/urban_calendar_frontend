@@ -41,7 +41,7 @@ const authSlice = createSlice({
         state.token = 'mock-jwt-token';
         state.error = null;
       } else {
-        state.error = 'Invalid username/email or password';
+        state.error = 'Invalid email or password';
       }
     },
     logout: (state) => {
